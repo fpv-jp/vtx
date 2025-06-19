@@ -1,0 +1,60 @@
+name: Build for multi platform
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - platform: RPI4_V4L2
+            runner: rpi4-v4l2
+          # - platform: RPI4_LIBCAM
+          #   runner: rpi4-libcam
+          # - platform: RPI5_LIBCAM
+          #   runner: rpi5-libcam
+          - platform: JETSON_NANO_2GB
+            runner: jetson-nano-2gb
+          # - platform: JETSON_ORIN_NANO_SUPER
+          #   runner: jetson-orin-nano-super
+          - platform: RADXA_ROCK_5B
+            runner: radxa-rock-5b
+          # - platform: RADXA_ROCK_5T
+          #   runner: radxa-rock-5t
+      fail-fast: false
+
+    runs-on:
+      - self-hosted
+      - ${{ matrix.runner }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build for ${{ matrix.platform }}
+        run: make all PLATFORM=${{ matrix.platform }}
+
+      - name: Verify binary
+        run: |
+          if [ -f vtx ]; then
+            echo "✓ Binary created successfully"
+            ls -lh vtx
+            file vtx
+          else
+            echo "✗ Binary not found"
+            exit 1
+          fi
+
+      - name: Rename binary with platform suffix
+        run: mv vtx vtx-${{ matrix.runner }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vtx-${{ matrix.runner }}
+          path: vtx-${{ matrix.runner }}
+          retention-days: 3
