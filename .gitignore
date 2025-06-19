@@ -1,0 +1,7 @@
+vtx*
+*.o
+
+node_modules/
+.cache/
+
+*.pem
