@@ -67,6 +67,11 @@ gboolean vtx_send_dummy_battery(gpointer user_data);
 #define CHANNEL_TYPE_MSP_SONAR "MSP_SONAR"
 #define CHANNEL_TYPE_MSP_BATTERY_STATE "MSP_BATTERY_STATE"
 
+
+// ----------------------------------
+
+#define CHANNEL_TYPE_WPA_SUPPLICANT "WPA_SUPPLICANT"
+
 extern MSP *g_msp;
 
 extern GObject *dc_msp_raw_imu;
@@ -78,6 +83,8 @@ extern GObject *dc_msp_analog;
 extern GObject *dc_msp_sonar;
 extern GObject *dc_msp_battery_state;
 
+extern GObject *dc_wpa_supplicant;
+
 // Timeout source IDs for data channel periodic sends
 extern guint timeout_id_msp_raw_imu;
 extern guint timeout_id_msp_raw_gps;
@@ -87,6 +94,8 @@ extern guint timeout_id_msp_altitude;
 extern guint timeout_id_msp_analog;
 extern guint timeout_id_msp_sonar;
 extern guint timeout_id_msp_battery_state;
+
+extern guint timeout_id_wpa_supplicant;
 
 void vtx_msp_flight_controller(JsonObject *vtx_capabilities);
 

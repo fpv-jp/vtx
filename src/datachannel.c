@@ -1,6 +1,7 @@
 #include "glib.h"
 #include "glibconfig.h"
 #include "headers/data_channel.h"
+#include "headers/wpa.h"
 
 // --- vtx_dc_on_open ----------------------------------
 static void vtx_dc_on_open(GObject *dc, gpointer user_data)
@@ -28,6 +29,7 @@ static void vtx_dc_on_open(GObject *dc, gpointer user_data)
   {
     timeout_id_bat = g_timeout_add_seconds(2, vtx_send_dummy_battery, NULL);
   }
+
   // ----------------------------------------
   // Multiwii Serial Protocol (MSP)
   // ----------------------------------------
@@ -71,6 +73,16 @@ static void vtx_dc_on_open(GObject *dc, gpointer user_data)
   else if (g_strcmp0(label, CHANNEL_TYPE_MSP_BATTERY_STATE) == 0)
   {
     timeout_id_msp_battery_state = g_timeout_add(1000 / 2, vtx_send_msp_battery_state, dc);
+  }
+
+  // ----------------------------------------
+  // Wi-Fi Protected Access (WPA)
+  // ----------------------------------------
+
+  // WPA_SUPPLICANT channel (1Hz)
+  else if (g_strcmp0(label, CHANNEL_TYPE_WPA_SUPPLICANT) == 0)
+  {
+    timeout_id_wpa_supplicant = g_timeout_add_seconds(1, vtx_send_wpa_status, dc);
   }
 }
 
@@ -166,6 +178,13 @@ static void vtx_dc_create_msp_channels(GstElement *webrtc)
   }
 }
 
+// --- vtx_dc_create_wpa_channel ----------------------------------
+static void vtx_dc_create_wpa_channel(GstElement *webrtc)
+{
+  ChannelConfig config = {CHANNEL_TYPE_WPA_SUPPLICANT, &dc_wpa_supplicant, TRUE, FALSE, 5};  // 信頼性優先
+  dc_wpa_supplicant = vtx_dc_create_data_channel(webrtc, &config);
+}
+
 // --- vtx_dc_create_offer ----------------------------------
 void vtx_dc_create_offer(GstElement *webrtc)
 {
@@ -183,6 +202,12 @@ void vtx_dc_create_offer(GstElement *webrtc)
   {
     // MSPが利用できない場合は非MSPチャンネルを作成
     vtx_dc_create_mobile_channels(webrtc);
+  }
+
+  if (g_wpa_supplicant)
+  {
+    // WPA_SUPPLICANTチャンネル (利用可能な場合は常に作成)
+    vtx_dc_create_wpa_channel(webrtc);
   }
 }
 
