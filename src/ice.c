@@ -6,6 +6,7 @@ struct _CustomICEAgent
 {
   GstWebRTCICE parent;
   GstWebRTCNice *nice_agent;
+  gchar *network_interface;
 };
 
 /* *INDENT-OFF* */
@@ -123,9 +124,19 @@ gchar *customice_agent_get_turn_server(GstWebRTCICE *ice)
   return gst_webrtc_ice_get_turn_server(c_ice);
 }
 
+static void customice_agent_finalize(GObject *object)
+{
+  CustomICEAgent *ice = CUSTOMICE_AGENT(object);
+  g_free(ice->network_interface);
+  G_OBJECT_CLASS(customice_agent_parent_class)->finalize(object);
+}
+
 static void customice_agent_class_init(CustomICEAgentClass *klass)
 {
+  GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
   GstWebRTCICEClass *gst_webrtc_ice_class = GST_WEBRTC_ICE_CLASS(klass);
+
+  gobject_class->finalize = customice_agent_finalize;
 
   // override virtual functions
 #if (GST_VERSION_MINOR < 23)
@@ -153,9 +164,33 @@ static void customice_agent_class_init(CustomICEAgentClass *klass)
 static void customice_agent_init(CustomICEAgent *ice)
 {
   ice->nice_agent = gst_webrtc_nice_new("nice_agent");
+  ice->network_interface = NULL;
 }
 
-CustomICEAgent *customice_agent_new(const gchar *name)
+CustomICEAgent *customice_agent_new(const gchar *name, const gchar *network_interface)
 {
-  return g_object_new(CUSTOMICE_TYPE_AGENT, "name", name, NULL);
+  CustomICEAgent *agent = g_object_new(CUSTOMICE_TYPE_AGENT, "name", name, NULL);
+
+  if (network_interface)
+  {
+    agent->network_interface = g_strdup(network_interface);
+
+    // Get the internal NiceAgent from GstWebRTCNice
+    GObject *nice_agent_obj = NULL;
+    g_object_get(agent->nice_agent, "agent", &nice_agent_obj, NULL);
+
+    if (nice_agent_obj)
+    {
+      // Set the interfaces property to restrict to specified NIC
+      GSList *interfaces = NULL;
+      interfaces = g_slist_append(interfaces, g_strdup(network_interface));
+      g_object_set(nice_agent_obj, "interfaces", interfaces, NULL);
+      g_slist_free_full(interfaces, g_free);
+      g_object_unref(nice_agent_obj);
+
+      g_print("CustomICEAgent: Restricting to network interface: %s\n", network_interface);
+    }
+  }
+
+  return agent;
 }
