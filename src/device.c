@@ -1,6 +1,10 @@
 #include <locale.h>
 #include <stdio.h>
 #include <string.h>
+#include <ifaddrs.h>
+#include <arpa/inet.h>
+#include <net/if.h>
+#include <netdb.h>
 
 #include "headers/inspection.h"
 
@@ -250,4 +254,67 @@ JsonArray *vtx_device_load_launch_entries()
   g_ptr_array_free(devices, TRUE);
 
   return device_list;
+}
+
+// --- vtx_network_interfaces_inspection ----------------------------------
+JsonArray *vtx_network_interfaces_inspection(void)
+{
+  struct ifaddrs *ifaddr, *ifa;
+  JsonArray *interfaces = json_array_new();
+
+  if (getifaddrs(&ifaddr) == -1)
+  {
+    g_printerr("Failed to get network interfaces\n");
+    return interfaces;
+  }
+
+  // Track which interfaces we've already added to avoid duplicates
+  GHashTable *seen = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+
+  for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next)
+  {
+    if (ifa->ifa_addr == NULL)
+      continue;
+
+    // Skip if we've already processed this interface
+    if (g_hash_table_contains(seen, ifa->ifa_name))
+      continue;
+
+    // Skip loopback interface
+    if (strcmp(ifa->ifa_name, "lo") == 0)
+      continue;
+
+    int family = ifa->ifa_addr->sa_family;
+
+    // Only process IPv4 addresses for simplicity
+    if (family == AF_INET)
+    {
+      JsonObject *iface = json_object_new();
+      json_object_set_string_member(iface, "name", ifa->ifa_name);
+
+      // Get IP address
+      char host[NI_MAXHOST];
+      if (getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in),
+                      host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST) == 0)
+      {
+        json_object_set_string_member(iface, "address", host);
+      }
+
+      // Check interface status
+      gboolean is_up = (ifa->ifa_flags & IFF_UP) != 0;
+      gboolean is_running = (ifa->ifa_flags & IFF_RUNNING) != 0;
+      json_object_set_boolean_member(iface, "up", is_up);
+      json_object_set_boolean_member(iface, "running", is_running);
+
+      json_array_add_object_element(interfaces, iface);
+
+      // Mark this interface as seen
+      g_hash_table_insert(seen, g_strdup(ifa->ifa_name), GINT_TO_POINTER(1));
+    }
+  }
+
+  g_hash_table_destroy(seen);
+  freeifaddrs(ifaddr);
+
+  return interfaces;
 }

@@ -9,6 +9,9 @@ ssh-keygen -t ed25519 -C "raspi-4b@fpv.jp"
 cat ~/.ssh/id_ed25519.pub
 # https://github.com/settings/keys
 ssh -T git@github.com
+
+git config --global user.email "raspi-4b@fpv.jp"
+git config --global user.name "FPV Japan"
 ```
 
 # Github Actions runner

@@ -79,8 +79,13 @@ void vtx_soup_on_message(SoupWebsocketConnection *conn, SoupWebsocketDataType ty
         gst_println("----- Supported Codecs capabilities -----");
         print_json_object(codecs_capabilities);
 
+        JsonArray *network_interfaces = vtx_network_interfaces_inspection();
+        gst_println("----- Network Interfaces capabilities -----");
+        print_json_array(network_interfaces);
+
         json_object_set_array_member(vtx_capabilities, "devices", device_capabilities);
         json_object_set_object_member(vtx_capabilities, "codecs", codecs_capabilities);
+        json_object_set_array_member(vtx_capabilities, "network_interfaces", network_interfaces);
 
         // ------------------------------------------
         // MSP data collection
