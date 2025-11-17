@@ -170,10 +170,10 @@ void vtx_soup_on_message(SoupWebsocketConnection *conn, SoupWebsocketDataType ty
 
     case SENDER_ICE:
     {
-      gst_println(">>> %d SENDER_ICE", SENDER_ICE);
       JsonObject *cand = json_object_get_object_member(object, "candidate");
       const gchar *cand_str = json_object_get_string_member(cand, "candidate");
       gint mline = json_object_get_int_member(cand, "sdpMLineIndex");
+        gst_println(">>> %d SENDER_ICE: %s", SENDER_ICE, cand_str);
       g_signal_emit_by_name(webrtc, "add-ice-candidate", mline, cand_str);
       break;
     }

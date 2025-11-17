@@ -168,12 +168,14 @@ GstElement *vtx_pipeline_build(const MediaParams *p)
         return NULL;
       }
       gst_bin_add(GST_BIN(pipeline), video_bin);
-      if (!gst_element_link(video_bin, webrtc))
+      // webrtcbin has on-request sink pads (sink_%u), so we must use gst_element_link_pads
+      if (!gst_element_link_pads(video_bin, NULL, webrtc, "sink_%u"))
       {
         gst_printerrln("Failed to link video pipeline to webrtcbin");
         gst_object_unref(pipeline);
         return NULL;
       }
+      gst_println("Successfully linked video pipeline to webrtcbin\n");
     }
 
     if (p->audio_pipeline)
@@ -196,12 +198,14 @@ GstElement *vtx_pipeline_build(const MediaParams *p)
         return NULL;
       }
       gst_bin_add(GST_BIN(pipeline), audio_bin);
-      if (!gst_element_link(audio_bin, webrtc))
+      // webrtcbin has on-request sink pads (sink_%u), so we must use gst_element_link_pads
+      if (!gst_element_link_pads(audio_bin, NULL, webrtc, "sink_%u"))
       {
         gst_printerrln("Failed to link audio pipeline to webrtcbin");
         gst_object_unref(pipeline);
         return NULL;
       }
+      gst_println("Successfully linked audio pipeline to webrtcbin\n");
     }
 
     return pipeline;
