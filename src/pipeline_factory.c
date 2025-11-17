@@ -32,30 +32,30 @@ gboolean vtx_pipeline_parse_media_params(JsonObject *o, MediaParams *p)
   p->audio_payload_type = json_object_get_int_member(o, "audio_payload_type");
   p->platform = PLATFORM;
 
-  gst_println("=== MediaParams parsed ===\n");
-  gst_println("MediaParams {");
-  gst_println("  video_pipeline: %s", p->video_pipeline ? p->video_pipeline : "NULL");
-  gst_println("  audio_pipeline: %s", p->audio_pipeline ? p->audio_pipeline : "NULL");
-  gst_println("  video_priority: %s", p->video_priority ? p->video_priority : "NULL");
-  gst_println("  audio_priority: %s", p->audio_priority ? p->audio_priority : "NULL");
-  gst_println("  video_payload_type: %u", p->video_payload_type);
-  gst_println("  audio_payload_type: %u", p->audio_payload_type);
-  gst_println("  platform: %d", p->platform);
-  gst_println("}\n");
+  // gst_println("=== MediaParams parsed ===\n");
+  // gst_println("MediaParams {");
+  // gst_println("  video_pipeline: %s", p->video_pipeline ? p->video_pipeline : "NULL");
+  // gst_println("  audio_pipeline: %s", p->audio_pipeline ? p->audio_pipeline : "NULL");
+  // gst_println("  video_priority: %s", p->video_priority ? p->video_priority : "NULL");
+  // gst_println("  audio_priority: %s", p->audio_priority ? p->audio_priority : "NULL");
+  // gst_println("  video_payload_type: %u", p->video_payload_type);
+  // gst_println("  audio_payload_type: %u", p->audio_payload_type);
+  // gst_println("  platform: %d", p->platform);
+  // gst_println("}\n");
 
-  if (p->video_pipeline)
-  {
-    gst_println("=== Video Pipeline description ===\n");
-    print_pipeline_pretty(p->video_pipeline);
-    gst_println("\n");
-  }
+  // if (p->video_pipeline)
+  // {
+  //   gst_println("=== Video Pipeline description ===\n");
+  //   print_pipeline_pretty(p->video_pipeline);
+  //   gst_println("\n");
+  // }
 
-  if (p->audio_pipeline)
-  {
-    gst_println("=== Audio Pipeline description ===\n");
-    print_pipeline_pretty(p->audio_pipeline);
-    gst_println("\n");
-  }
+  // if (p->audio_pipeline)
+  // {
+  //   gst_println("=== Audio Pipeline description ===\n");
+  //   print_pipeline_pretty(p->audio_pipeline);
+  //   gst_println("\n");
+  // }
   return TRUE;
 }
 

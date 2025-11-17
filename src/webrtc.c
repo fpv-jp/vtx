@@ -1,3 +1,4 @@
+#include <glib.h>
 #include <gst/webrtc/webrtc.h>
 
 #include "headers/data_channel.h"
@@ -24,6 +25,12 @@ static void vtx_webrtc_send_sdp_offer(GstWebRTCSessionDescription *desc)
 // --- vtx_webrtc_on_ice_candidate ----------------------------------
 void vtx_webrtc_on_ice_candidate(GstElement *webrtc, guint mlineindex, gchar *candidate, gpointer user_data)
 {
+  // if (candidate == NULL || g_strstr_len(candidate, -1, "192.168.50.") == NULL)
+  // {
+  //   gst_println("### ignoring ICE candidate without 192.168.50.* address");
+  //   return;
+  // }
+
   JsonObject *ice = json_object_new();
   json_object_set_string_member(ice, "candidate", candidate);
   json_object_set_int_member(ice, "sdpMLineIndex", mlineindex);
@@ -31,7 +38,7 @@ void vtx_webrtc_on_ice_candidate(GstElement *webrtc, guint mlineindex, gchar *ca
   JsonObject *msg = json_object_new();
   json_object_set_object_member(msg, "candidate", ice);
 
-  gst_println("<<< %d RECEIVER_ICE", RECEIVER_ICE);
+  gst_println("<<< %d RECEIVER_ICE: %s", RECEIVER_ICE, candidate);
   vtx_ws_send(ws_conn, RECEIVER_ICE, ws1Id, ws2Id, msg);
   json_object_unref(msg);
 }

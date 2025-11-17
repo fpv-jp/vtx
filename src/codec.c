@@ -74,7 +74,7 @@ static void vtx_platform_serviceable_codecs(void)
       break;
 
     default:
-      g_warning("Undefined PLATFORM detected. Allowed codecs list may be incomplete.");
+      gst_printerrln("Undefined PLATFORM detected. Allowed codecs list may be incomplete.");
       break;
   }
   s_supported_codecs_initialized = TRUE;
