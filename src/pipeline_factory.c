@@ -64,10 +64,12 @@ GstElement *vtx_pipeline_build(const MediaParams *p)
 {
   gchar *desc = NULL;
 
+  // "webrtcbin name=webrtcbin latency=0 bundle-policy=max-bundle stun-server=stun://stun.l.google.com:19302 "
+
   if (p->video_pipeline && p->audio_pipeline)
   {
     desc = g_strdup_printf(
-        "webrtcbin name=webrtcbin latency=0 bundle-policy=max-bundle stun-server=stun://stun.l.google.com:19302 "
+        "webrtcbin name=webrtcbin latency=0 bundle-policy=max-bundle "
         "%s ! webrtcbin. "
         "%s ! webrtcbin.",
         p->video_pipeline, p->audio_pipeline);
@@ -75,14 +77,14 @@ GstElement *vtx_pipeline_build(const MediaParams *p)
   else if (p->video_pipeline)
   {
     desc = g_strdup_printf(
-        "webrtcbin name=webrtcbin latency=0 bundle-policy=max-bundle stun-server=stun://stun.l.google.com:19302 "
+        "webrtcbin name=webrtcbin latency=0 bundle-policy=max-bundle "
         "%s ! webrtcbin.",
         p->video_pipeline);
   }
   else if (p->audio_pipeline)
   {
     desc = g_strdup_printf(
-        "webrtcbin name=webrtcbin latency=0 bundle-policy=max-bundle stun-server=stun://stun.l.google.com:19302 "
+        "webrtcbin name=webrtcbin latency=0 bundle-policy=max-bundle "
         "%s ! webrtcbin.",
         p->audio_pipeline);
   }
