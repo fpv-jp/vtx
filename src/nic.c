@@ -15,8 +15,8 @@
 #endif
 
 #include "headers/inspection.h"
-#include "headers/wpa.h"
 #include "headers/nic.h"
+#include "headers/wpa.h"
 
 // --- should_skip_interface ----------------------------------
 static gboolean vtx_nic_should_skip_interface(const gchar *ifname)
@@ -29,18 +29,20 @@ static gboolean vtx_nic_should_skip_interface(const gchar *ifname)
     if (g_strcmp0(ifname, *entry) == 0) return TRUE;
   }
 
-  static const gchar *prefix_skip[] = {"veth",  //
-                                       "br-",   //
-                                       "docker",
-                                       "virbr",
-                                       "tun",
-                                       "tap",
-                                       "utun",
-                                       "bridge",
-                                       "awdl",
-                                       "llw",
-                                       "vboxnet",
-                                       "vmnet"};
+  static const gchar *prefix_skip[] = {
+      "veth",     //
+      "br-",      //
+      "docker",   //
+      "virbr",    //
+      "tun",      //
+      "tap",      //
+      "utun",     //
+      "bridge",   //
+      "awdl",     //
+      "llw",      //
+      "vboxnet",  //
+      "vmnet"     //
+  };
   for (const gchar **prefix = prefix_skip; *prefix != NULL; prefix++)
   {
     if (g_str_has_prefix(ifname, *prefix)) return TRUE;
@@ -234,8 +236,8 @@ static IwDevInfo *vtx_nic_get_wifi_info(void)
   if (!fp) return NULL;
 
   IwDevInfo *info = g_new0(IwDevInfo, 1);
-  info->named_interfaces = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, (GDestroyNotify)json_object_unref);
-  info->unnamed_interfaces = g_ptr_array_new_with_free_func((GDestroyNotify)json_object_unref);
+  info->named_interfaces = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, (GDestroyNotify) json_object_unref);
+  info->unnamed_interfaces = g_ptr_array_new_with_free_func((GDestroyNotify) json_object_unref);
 
   gchar *current_phy = NULL;
   JsonObject *current_iface = NULL;
@@ -339,7 +341,7 @@ static void vtx_nic_append_remaining_wifi_info(JsonArray *interfaces, GHashTable
       if (seen && g_hash_table_contains(seen, ifname)) continue;
 
       JsonObject *iface = vtx_nic_parse_interface_new(ifname);
-      vtx_nic_parse_interface_attach_iw(iface, (JsonObject *)value, TRUE);
+      vtx_nic_parse_interface_attach_iw(iface, (JsonObject *) value, TRUE);
       vtx_nic_parse_interface_add(interfaces, iface);
 
       if (seen) g_hash_table_insert(seen, g_strdup(ifname), GINT_TO_POINTER(1));

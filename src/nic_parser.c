@@ -1,7 +1,6 @@
-#include "headers/nic.h"
-
 #include <string.h>
 
+#include "headers/nic.h"
 #include "headers/wpa.h"
 
 typedef struct
@@ -96,7 +95,7 @@ void vtx_nic_parse_wifi_info(char *line, VtxKeyValueFunc callback, gpointer user
 
   gchar *key_start = line;
   gchar *key_end = key_start;
-  while (*key_end && !g_ascii_isspace((guchar)*key_end)) key_end++;
+  while (*key_end && !g_ascii_isspace((guchar) *key_end)) key_end++;
   if (key_end == key_start) return;
 
   gchar saved = *key_end;
@@ -144,8 +143,7 @@ void vtx_nic_parse_wifi_info_txq_block(FILE *fp, JsonObject *iface)
   {
     if (keys[i][0] == '\0') continue;
 
-    while (data && data[value_index] && data[value_index][0] == '\0')
-      value_index++;
+    while (data && data[value_index] && data[value_index][0] == '\0') value_index++;
 
     if (!data || !data[value_index]) break;
 

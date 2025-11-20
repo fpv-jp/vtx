@@ -1,6 +1,3 @@
-#include "headers/wpa.h"
-#include "headers/nic.h"
-
 #include <json-glib/json-glib.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,7 +6,9 @@
 #include <sys/un.h>
 #include <unistd.h>
 
+#include "headers/nic.h"
 #include "headers/utils.h"
+#include "headers/wpa.h"
 
 #define WPA_CTRL_SOCK_PATH "/var/run/wpa_supplicant"
 #define WPA_BUFFER_SIZE WPA_RESPONSE_MAX_LEN

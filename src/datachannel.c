@@ -182,8 +182,8 @@ static void vtx_dc_create_msp_channels(GstElement *webrtc)
 static void vtx_dc_create_wpa_channels(GstElement *webrtc)
 {
   ChannelConfig configs[] = {
-      {CHANNEL_TYPE_WPA_SUPPLICANT, &dc_wpa_supplicant, TRUE, FALSE, 5}// 信頼性優先
-    };
+      {CHANNEL_TYPE_WPA_SUPPLICANT, &dc_wpa_supplicant, TRUE, FALSE, 5}  // 信頼性優先
+  };
 
   for (size_t i = 0; i < sizeof(configs) / sizeof(configs[0]); i++)
   {
