@@ -404,12 +404,12 @@ gboolean vtx_wpa_send_status(gpointer user_data)
 
   json_builder_set_member_name(builder, "status");
   json_builder_begin_object(builder);
-  vtx_nic_parse_wpa_json_add_key_values(builder, status.raw);
+  vtx_nic_parse_wpa_datachannel(builder, status.raw);
   json_builder_end_object(builder);
 
   json_builder_set_member_name(builder, "signal_poll");
   json_builder_begin_object(builder);
-  vtx_nic_parse_wpa_json_add_key_values(builder, status.signal.raw);
+  vtx_nic_parse_wpa_datachannel(builder, status.signal.raw);
   json_builder_end_object(builder);
 
   json_builder_end_object(builder);

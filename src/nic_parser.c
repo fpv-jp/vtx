@@ -80,8 +80,8 @@ static void vtx_nic_parse_wpa_json_add_entry(const char *key, const char *value,
   json_builder_add_string_value(builder, value ? value : "");
 }
 
-// --- vtx_nic_parse_wpa_json_add_key_values ----------------------------------
-void vtx_nic_parse_wpa_json_add_key_values(JsonBuilder *builder, const char *response)
+// --- vtx_nic_parse_wpa_datachannel ----------------------------------
+void vtx_nic_parse_wpa_datachannel(JsonBuilder *builder, const char *response)
 {
   if (!builder || !response || response[0] == '\0') return;
 

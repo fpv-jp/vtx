@@ -24,4 +24,4 @@ void vtx_nic_parse_interface_attach_wifi(JsonObject *iface, JsonObject *status, 
 void vtx_nic_parse_interface_attach_ethtool(JsonObject *iface, JsonArray *info);
 void vtx_nic_parse_interface_add(JsonArray *interfaces, JsonObject *iface);
 void vtx_nic_parse_wpa_foreach_key_value(const char *response, VtxWpaKeyValueFunc callback, gpointer user_data);
-void vtx_nic_parse_wpa_json_add_key_values(JsonBuilder *builder, const char *response);
+void vtx_nic_parse_wpa_datachannel(JsonBuilder *builder, const char *response);
