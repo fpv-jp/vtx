@@ -6,6 +6,7 @@ struct _CustomICEAgent
 {
   GstWebRTCICE parent;
   GstWebRTCNice *nice_agent;
+  gchar *network_interface;
 };
 
 /* *INDENT-OFF* */
@@ -14,13 +15,25 @@ G_DEFINE_TYPE(CustomICEAgent, customice_agent, GST_TYPE_WEBRTC_ICE)
 
 GstWebRTCICEStream *customice_agent_add_stream(GstWebRTCICE *ice, guint session_id)
 {
-  GstWebRTCICE *c_ice = GST_WEBRTC_ICE(CUSTOMICE_AGENT(ice)->nice_agent);
+  CustomICEAgent *agent = CUSTOMICE_AGENT(ice);
+  if (!agent->nice_agent)
+  {
+    gst_printerrln("CustomICEAgent: nice_agent is NULL in add_stream");
+    return NULL;
+  }
+  GstWebRTCICE *c_ice = GST_WEBRTC_ICE(agent->nice_agent);
   return gst_webrtc_ice_add_stream(c_ice, session_id);
 }
 
 GstWebRTCICETransport *customice_agent_find_transport(GstWebRTCICE *ice, GstWebRTCICEStream *stream, GstWebRTCICEComponent component)
 {
-  GstWebRTCICE *c_ice = GST_WEBRTC_ICE(CUSTOMICE_AGENT(ice)->nice_agent);
+  CustomICEAgent *agent = CUSTOMICE_AGENT(ice);
+  if (!agent->nice_agent)
+  {
+    gst_printerrln("CustomICEAgent: nice_agent is NULL in find_transport");
+    return NULL;
+  }
+  GstWebRTCICE *c_ice = GST_WEBRTC_ICE(agent->nice_agent);
   return gst_webrtc_ice_find_transport(c_ice, stream, component);
 }
 
@@ -123,9 +136,24 @@ gchar *customice_agent_get_turn_server(GstWebRTCICE *ice)
   return gst_webrtc_ice_get_turn_server(c_ice);
 }
 
+static void customice_agent_finalize(GObject *object)
+{
+  CustomICEAgent *ice = CUSTOMICE_AGENT(object);
+  g_free(ice->network_interface);
+  if (ice->nice_agent)
+  {
+    g_object_unref(ice->nice_agent);
+    ice->nice_agent = NULL;
+  }
+  G_OBJECT_CLASS(customice_agent_parent_class)->finalize(object);
+}
+
 static void customice_agent_class_init(CustomICEAgentClass *klass)
 {
+  GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
   GstWebRTCICEClass *gst_webrtc_ice_class = GST_WEBRTC_ICE_CLASS(klass);
+
+  gobject_class->finalize = customice_agent_finalize;
 
   // override virtual functions
 #if (GST_VERSION_MINOR < 23)
@@ -153,9 +181,65 @@ static void customice_agent_class_init(CustomICEAgentClass *klass)
 static void customice_agent_init(CustomICEAgent *ice)
 {
   ice->nice_agent = gst_webrtc_nice_new("nice_agent");
+  ice->network_interface = NULL;
+
+  if (!ice->nice_agent)
+  {
+    gst_printerrln("Failed to create GstWebRTCNice agent");
+  }
+  else if (!GST_IS_WEBRTC_ICE(ice->nice_agent))
+  {
+    gst_printerrln("Created nice_agent is not a valid GstWebRTCICE object");
+  }
+  else
+  {
+    // Take ownership of the nice_agent by sinking the floating reference
+    g_object_ref_sink(ice->nice_agent);
+    gst_println("CustomICEAgent: Successfully created nice_agent (refcount after sink: %d)\n", G_OBJECT(ice->nice_agent)->ref_count);
+  }
 }
 
-CustomICEAgent *customice_agent_new(const gchar *name)
+CustomICEAgent *customice_agent_new(const gchar *name, const gchar *network_interface)
 {
-  return g_object_new(CUSTOMICE_TYPE_AGENT, "name", name, NULL);
+  CustomICEAgent *agent = g_object_new(CUSTOMICE_TYPE_AGENT, "name", name, NULL);
+
+  // Validate that the agent is properly registered as a GstWebRTCICE
+  gst_println("CustomICEAgent type check: %s\n", GST_IS_WEBRTC_ICE(agent) ? "VALID GstWebRTCICE" : "NOT A VALID GstWebRTCICE");
+  gst_println("CustomICEAgent GType: %s (parent: %s)\n", g_type_name(G_OBJECT_TYPE(agent)), g_type_name(g_type_parent(G_OBJECT_TYPE(agent))));
+
+  if (network_interface)
+  {
+    agent->network_interface = g_strdup(network_interface);
+
+    // Get the internal NiceAgent from GstWebRTCNice
+    GObject *nice_agent_obj = NULL;
+    g_object_get(agent->nice_agent, "agent", &nice_agent_obj, NULL);
+
+    if (nice_agent_obj)
+    {
+      // Check if the 'interfaces' property exists before trying to set it
+      GParamSpec *pspec = g_object_class_find_property(G_OBJECT_GET_CLASS(nice_agent_obj), "interfaces");
+
+      if (pspec)
+      {
+        // Set the interfaces property to restrict to specified NIC
+        GSList *interfaces = NULL;
+        interfaces = g_slist_append(interfaces, g_strdup(network_interface));
+        g_object_set(nice_agent_obj, "interfaces", interfaces, NULL);
+        g_slist_free_full(interfaces, g_free);
+        gst_println("CustomICEAgent: Restricting to network interface: %s\n", network_interface);
+      }
+      else
+      {
+        gst_printerrln(
+            "CustomICEAgent: 'interfaces' property not available on NiceAgent. "
+            "Network interface restriction may not work. Consider upgrading libnice or using "
+            "system-level network configuration.");
+      }
+
+      g_object_unref(nice_agent_obj);
+    }
+  }
+
+  return agent;
 }
