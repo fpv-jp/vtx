@@ -348,11 +348,11 @@ gboolean vtx_wpa_supplicant_init(const char *interface_name)
   // Get initial status
   WpaStatus status;
   memset(&status, 0, sizeof(status));
-  if (vtx_wpa_supplicant_get_status(g_wpa_supplicant, &status))
-  {
-    gst_println("[WPA] Initial STATUS:\n%s", status.raw[0] ? status.raw : "(empty)");
-    gst_println("[WPA] Initial SIGNAL_POLL:\n%s", status.signal.raw[0] ? status.signal.raw : "(empty)");
-  }
+  // if (vtx_wpa_supplicant_get_status(g_wpa_supplicant, &status))
+  // {
+  //   gst_println("[WPA] Initial STATUS:\n%s", status.raw[0] ? status.raw : "(empty)");
+  //   gst_println("[WPA] Initial SIGNAL_POLL:\n%s", status.signal.raw[0] ? status.signal.raw : "(empty)");
+  // }
 
   // Start event monitoring
   vtx_wpa_supplicant_start_monitor(g_wpa_supplicant);
