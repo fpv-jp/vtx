@@ -116,7 +116,8 @@ GstElement *vtx_pipeline_build(const MediaParams *p)
 
     gst_println("CustomICEAgent cast to GstWebRTCICE succeeded\n");
 
-    webrtc = gst_element_factory_make_full("webrtcbin", "name", "webrtcbin", "latency", 0, "bundle-policy", GST_WEBRTC_BUNDLE_POLICY_MAX_BUNDLE, "stun-server", STUN_SERVER, "ice-agent", agent, NULL);
+    // webrtc = gst_element_factory_make_full("webrtcbin", "name", "webrtcbin", "latency", 0, "bundle-policy", GST_WEBRTC_BUNDLE_POLICY_MAX_BUNDLE, "stun-server", STUN_SERVER, "ice-agent", agent, NULL);
+    webrtc = gst_element_factory_make_full("webrtcbin", "name", "webrtcbin", "latency", 0, "bundle-policy", GST_WEBRTC_BUNDLE_POLICY_MAX_BUNDLE, "ice-agent", agent, NULL);
 
     if (webrtc)
     {
