@@ -223,11 +223,21 @@ CustomICEAgent *customice_agent_new(const gchar *name, const gchar *network_inte
       if (pspec)
       {
         // Set the interfaces property to restrict to specified NIC
+        // Extract interface name only (before ':' if present, e.g., "wlan2:192.168.50.2" -> "wlan2")
+        gchar *interface_name = g_strdup(network_interface);
+        gchar *colon = strchr(interface_name, ':');
+        if (colon)
+        {
+          *colon = '\0'; // Terminate string at colon
+        }
+
         GSList *interfaces = NULL;
-        interfaces = g_slist_append(interfaces, g_strdup(network_interface));
+        interfaces = g_slist_append(interfaces, g_strdup(interface_name));
         g_object_set(nice_agent_obj, "interfaces", interfaces, NULL);
         g_slist_free_full(interfaces, g_free);
-        gst_println("CustomICEAgent: Restricting to network interface: %s\n", network_interface);
+        gst_println("CustomICEAgent: Restricting to network interface: %s (from %s)\n", interface_name, network_interface);
+
+        g_free(interface_name);
       }
       else
       {
