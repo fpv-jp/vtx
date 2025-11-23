@@ -17,6 +17,8 @@ typedef struct
   guint video_payload_type;
   guint audio_payload_type;
   PlatformType platform;
+  const gchar *network_interface;
+  const gchar *video_profile;
 } MediaParams;
 
 gboolean vtx_pipeline_parse_media_params(JsonObject *root_obj, MediaParams *mediaParams);

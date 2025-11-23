@@ -45,8 +45,9 @@ static void vtx_platform_serviceable_codecs(void)
       s_platform_serviceable_codecs[4] = "opusenc";
       break;
 
-    case JETSON_ORIN_NANO_SUPER:  // Orin Nano Super is does not support HW encoding. decoding only.
-                                  // Use SW encoding.
+    case JETSON_ORIN_NANO_SUPER:
+      // Orin Nano Super is does not support HW encoding. decoding only.
+      // Use SW encoding.
       s_platform_serviceable_codecs[0] = "x264enc";
       s_platform_serviceable_codecs[1] = "x265enc";
       s_platform_serviceable_codecs[2] = "vp8enc";
@@ -62,19 +63,21 @@ static void vtx_platform_serviceable_codecs(void)
       s_platform_serviceable_codecs[3] = "opusenc";
       break;
 
-    case RPI4_LIBCAM:  // VideoCore IV is supports HW encoding.
+    case RPI4_LIBCAM:
+      // VideoCore IV is supports HW encoding.
       s_platform_serviceable_codecs[0] = "v4l2h264enc";
       s_platform_serviceable_codecs[1] = "opusenc";
       break;
 
-    case RPI5_LIBCAM:  // VideoCore VII is does not support HW encoding. decoding only.
-                       // Use SW encoding.
+    case RPI5_LIBCAM:
+      // VideoCore VII is does not support HW encoding. decoding only.
+      // Use SW encoding.
       s_platform_serviceable_codecs[0] = "openh264enc";
       s_platform_serviceable_codecs[1] = "opusenc";
       break;
 
     default:
-      g_warning("Undefined PLATFORM detected. Allowed codecs list may be incomplete.");
+      gst_printerrln("Undefined PLATFORM detected. Allowed codecs list may be incomplete.");
       break;
   }
   s_supported_codecs_initialized = TRUE;

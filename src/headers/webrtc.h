@@ -9,7 +9,7 @@
 G_BEGIN_DECLS
 #define CUSTOMICE_TYPE_AGENT (customice_agent_get_type())
 G_DECLARE_FINAL_TYPE(CustomICEAgent, customice_agent, CUSTOMICE, AGENT, GstWebRTCICE)
-CustomICEAgent *customice_agent_new(const gchar *name);
+CustomICEAgent *customice_agent_new(const gchar *name, const gchar *network_interface);
 
 void vtx_webrtc_on_ice_candidate(GstElement *webrtc, guint mlineindex, gchar *candidate, gpointer user_data);
 

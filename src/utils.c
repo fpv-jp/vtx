@@ -3,6 +3,7 @@
 #include <locale.h>
 
 #include "headers/data_channel.h"
+#include "headers/wpa.h"
 
 // --- vtx_platform_to_string ----------------------------------
 gchar *vtx_platform_to_string(PlatformType platform)
@@ -77,10 +78,13 @@ gboolean vtx_cleanup_connection(const gchar *msg)
   if (msg) gst_printerrln("%s", msg);
 
   // Cleanup data channels
-  vtx_cleanup_data_channels();
+  vtx_dc_cleanup();
 
   // Cleanup MSP connection
-  vtx_cleanup_global_msp();
+  vtx_msp_cleanup_global();
+
+  // Cleanup WPA supplicant
+  vtx_wpa_supplicant_cleanup();
 
   // Cleanup GStreamer pipeline and webrtc
   if (pipeline)
@@ -118,8 +122,14 @@ gboolean vtx_cleanup_and_quit_loop(const gchar *msg, AppState state)
 
   if (state > 0) app_state = state;
 
+  // Cleanup data channels
+  vtx_dc_cleanup();
+
   // Cleanup MSP connection
-  vtx_cleanup_global_msp();
+  vtx_msp_cleanup_global();
+
+  // Cleanup WPA supplicant
+  vtx_wpa_supplicant_cleanup();
 
   if (ws_conn)
   {
