@@ -77,7 +77,7 @@ try_again:
   }
 
   ctrl->dest.sun_family = AF_UNIX;
-  res = strlcpy(ctrl->dest.sun_path, ctrl_path, sizeof(ctrl->dest.sun_path));
+  res = g_strlcpy(ctrl->dest.sun_path, ctrl_path, sizeof(ctrl->dest.sun_path));
   if (res >= sizeof(ctrl->dest.sun_path))
   {
     close(ctrl->s);
