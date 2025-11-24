@@ -24,14 +24,14 @@ guint timeout_id_msp_analog = 0;
 guint timeout_id_msp_sonar = 0;
 guint timeout_id_msp_battery_state = 0;
 
-// --- vtx_set_global_msp ----------------------------------
-void vtx_set_global_msp(MSP *msp)
+// --- vtx_msp_set_global ----------------------------------
+void vtx_msp_set_global(MSP *msp)
 {
   g_msp = msp;
 }
 
-// --- vtx_cleanup_global_msp ----------------------------------
-void vtx_cleanup_global_msp(void)
+// --- vtx_msp_cleanup_global ----------------------------------
+void vtx_msp_cleanup_global(void)
 {
   if (g_msp)
   {
@@ -41,8 +41,8 @@ void vtx_cleanup_global_msp(void)
   }
 }
 
-// --- vtx_cleanup_data_channels ----------------------------------
-void vtx_cleanup_data_channels(void)
+// --- vtx_dc_cleanup ----------------------------------
+void vtx_dc_cleanup(void)
 {
   // Remove all timeout sources first
   if (timeout_id_imu > 0)
@@ -191,7 +191,7 @@ void vtx_msp_flight_controller(JsonObject *vtx_capabilities)
     if (vtx_msp_init(msp, port, B115200) == 1)
     {
       // Keep MSP connection alive and store in global variable
-      vtx_set_global_msp(msp);
+      vtx_msp_set_global(msp);
       gst_println("MSP connection established and stored globally");
 
       // Get board info

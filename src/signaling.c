@@ -9,10 +9,79 @@
 #include "headers/msp.h"
 #include "headers/pipeline.h"
 #include "headers/utils.h"
+#include "headers/wpa.h"
 
 SoupWebsocketConnection *ws_conn = NULL;
 gchar *ws1Id = NULL;
 gchar *ws2Id = NULL;
+
+// --- vtx_sdp_media_is_rejected ----------------------------------
+static gboolean vtx_sdp_media_is_rejected(const GstSDPMedia *media)
+{
+  if (!media) return FALSE;
+
+  if (gst_sdp_media_get_port(media) == 0) return TRUE;
+
+  const gchar *inactive = gst_sdp_media_get_attribute_val(media, "inactive");
+  return inactive != NULL;
+}
+
+// --- vtx_sdp_handle_rejected_media ----------------------------------
+static gboolean vtx_sdp_handle_rejected_media(const GstSDPMessage *sdp)
+{
+  if (!sdp) return FALSE;
+
+  guint media_count = gst_sdp_message_medias_len(sdp);
+  gboolean video_rejected = FALSE;
+  gboolean audio_rejected = FALSE;
+
+  for (guint i = 0; i < media_count; i++)
+  {
+    const GstSDPMedia *media = gst_sdp_message_get_media(sdp, i);
+    if (!vtx_sdp_media_is_rejected(media)) continue;
+
+    const gchar *media_type = gst_sdp_media_get_media(media);
+    if (g_strcmp0(media_type, "video") == 0)
+    {
+      video_rejected = TRUE;
+    }
+    else if (g_strcmp0(media_type, "audio") == 0)
+    {
+      audio_rejected = TRUE;
+    }
+  }
+
+  if (!video_rejected && !audio_rejected) return FALSE;
+
+  GString *err_msg = g_string_new("Peer rejected ");
+  if (video_rejected && audio_rejected)
+  {
+    g_string_append(err_msg, "both video and audio tracks. The viewer likely lacks the required codecs (H264 video / Opus audio).");
+  }
+  else if (video_rejected)
+  {
+    g_string_append(err_msg, "the video track. Ensure the viewer supports H264 decoding.");
+  }
+  else
+  {
+    g_string_append(err_msg, "the audio track. Ensure the viewer supports Opus decoding.");
+  }
+
+  gst_printerrln("%s", err_msg->str);
+
+  if (ws2Id)
+  {
+    JsonObject *error_obj = json_object_new();
+    json_object_set_string_member(error_obj, "message", err_msg->str);
+    vtx_ws_send(ws_conn, RECEIVER_SYSTEM_ERROR, ws1Id, ws2Id, error_obj);
+    json_object_unref(error_obj);
+  }
+
+  vtx_cleanup_connection("Remote SDP rejected offered media");
+
+  g_string_free(err_msg, TRUE);
+  return TRUE;
+}
 
 // --- vtx_soup_on_message ----------------------------------
 void vtx_soup_on_message(SoupWebsocketConnection *conn, SoupWebsocketDataType type, GBytes *message, gpointer user_data)
@@ -68,23 +137,36 @@ void vtx_soup_on_message(SoupWebsocketConnection *conn, SoupWebsocketDataType ty
       if (json_object_has_member(object, "ws2Id"))
       {
         gchar *ws2Id_ = g_strdup(json_object_get_string_member(object, "ws2Id"));
+
         JsonObject *vtx_capabilities = json_object_new();
+
         json_object_set_string_member(vtx_capabilities, "source", "gstreamer");
         json_object_set_string_member(vtx_capabilities, "platform", vtx_platform_to_string(PLATFORM));
+
+        JsonArray *network_interfaces = vtx_nic_inspection();
+        // gst_println("----- Network Interfaces capabilities -----");
+        // print_json_array(network_interfaces);
+
         JsonArray *device_capabilities = vtx_device_load_launch_entries();
-        gst_println("----- Media Device capabilities -----");
-        print_json_array(device_capabilities);
+        // gst_println("----- Media Device capabilities -----");
+        // print_json_array(device_capabilities);
 
         JsonObject *codecs_capabilities = vtx_codecs_supported_inspection();
-        gst_println("----- Supported Codecs capabilities -----");
-        print_json_object(codecs_capabilities);
+        // gst_println("----- Supported Codecs capabilities -----");
+        // print_json_object(codecs_capabilities);
 
+        json_object_set_array_member(vtx_capabilities, "network", network_interfaces);
         json_object_set_array_member(vtx_capabilities, "devices", device_capabilities);
         json_object_set_object_member(vtx_capabilities, "codecs", codecs_capabilities);
 
         // ------------------------------------------
         // MSP data collection
         vtx_msp_flight_controller(vtx_capabilities);
+        // ------------------------------------------
+
+        // ------------------------------------------
+        // WPA supplicant initialization
+        vtx_wpa_supplicant_init("wlan2");
         // ------------------------------------------
 
         gst_println("<<< %d RECEIVER_MEDIA_DEVICE_LIST_RESPONSE", RECEIVER_MEDIA_DEVICE_LIST_RESPONSE);
@@ -150,6 +232,11 @@ void vtx_soup_on_message(SoupWebsocketConnection *conn, SoupWebsocketDataType ty
         gst_sdp_message_free(sdp);
         break;
       }
+      if (vtx_sdp_handle_rejected_media(sdp))
+      {
+        gst_sdp_message_free(sdp);
+        break;
+      }
       GstWebRTCSessionDescription *desc = gst_webrtc_session_description_new(GST_WEBRTC_SDP_TYPE_ANSWER, sdp);
       GstPromise *promise = gst_promise_new();
       g_signal_emit_by_name(webrtc, "set-remote-description", desc, promise);
@@ -162,11 +249,18 @@ void vtx_soup_on_message(SoupWebsocketConnection *conn, SoupWebsocketDataType ty
 
     case SENDER_ICE:
     {
-      gst_println(">>> %d SENDER_ICE", SENDER_ICE);
       JsonObject *cand = json_object_get_object_member(object, "candidate");
       const gchar *cand_str = json_object_get_string_member(cand, "candidate");
       gint mline = json_object_get_int_member(cand, "sdpMLineIndex");
-      g_signal_emit_by_name(webrtc, "add-ice-candidate", mline, cand_str);
+      gst_println(">>> %d SENDER_ICE: %s", SENDER_ICE, cand_str);
+      if (webrtc)
+      {
+        g_signal_emit_by_name(webrtc, "add-ice-candidate", mline, cand_str);
+      }
+      else
+      {
+        gst_printerrln("Ignoring ICE candidate because WebRTC pipeline has been cleaned up");
+      }
       break;
     }
 
