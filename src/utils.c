@@ -62,8 +62,6 @@ void vtx_ws_send(SoupWebsocketConnection *conn, int type, const gchar *ws1Id, co
   gsize length = 0;
   gchar *json_str = json_generator_to_data(gen, &length);
 
-  // gst_println("[WebSocket-Send] Size: %lu, Content: %s", (unsigned long) length, json_str);
-
   soup_websocket_connection_send_text(conn, json_str);
 
   g_free(json_str);
@@ -206,7 +204,6 @@ gboolean vtx_check_gst_plugins(void)
       g_ptr_array_add(needed, g_strdup("alsa"));
       g_ptr_array_add(needed, g_strdup("video4linux2"));
       g_ptr_array_add(needed, g_strdup("waylandsink"));
-      // g_ptr_array_add (needed, g_strdup ("pulseaudio"));
       break;
 
     case RPI4_V4L2:

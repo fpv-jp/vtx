@@ -25,12 +25,6 @@ static void vtx_webrtc_send_sdp_offer(GstWebRTCSessionDescription *desc)
 // --- vtx_webrtc_on_ice_candidate ----------------------------------
 void vtx_webrtc_on_ice_candidate(GstElement *webrtc, guint mlineindex, gchar *candidate, gpointer user_data)
 {
-  // if (candidate == NULL || g_strstr_len(candidate, -1, "192.168.50.") == NULL)
-  // {
-  //   gst_println("### ignoring ICE candidate without 192.168.50.* address");
-  //   return;
-  // }
-
   JsonObject *ice = json_object_new();
   json_object_set_string_member(ice, "candidate", candidate);
   json_object_set_int_member(ice, "sdpMLineIndex", mlineindex);
@@ -119,7 +113,7 @@ static void vtx_webrtc_on_create_offer(GstPromise *promise, gpointer user_data)
 void vtx_webrtc_on_negotiation_needed(GstElement *element, gpointer user_data)
 {
   app_state = PEER_CALL_NEGOTIATING;
-  // create data channel
+  
   vtx_dc_create_offer(webrtc);
 
   GstPromise *promise = gst_promise_new_with_change_func(vtx_webrtc_on_create_offer, NULL, NULL);
