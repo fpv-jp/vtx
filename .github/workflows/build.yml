@@ -1,0 +1,45 @@
+name: Build Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Cache apt packages
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: >
+            build-essential
+            pkg-config
+            libsoup-3.0-dev
+            libgstreamer1.0-dev
+            libgstreamer-plugins-base1.0-dev
+            libgstreamer-plugins-bad1.0-dev
+            libjson-glib-dev
+            libnice-dev
+            libssl-dev
+            file
+          version: 1.0
+
+      - name: Build test
+        run: make all PLATFORM=LINUX_X86
+
+      - name: Verify binary
+        run: |
+          if [ -f vtx ]; then
+            echo "✓ Binary created successfully"
+            ls -lh vtx
+            file vtx
+          else
+            echo "✗ Binary not found"
+            exit 1
+          fi

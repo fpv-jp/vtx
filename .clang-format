@@ -1,0 +1,8 @@
+BasedOnStyle: Google
+IndentWidth: 2
+UseTab: Never
+ColumnLimit: 256
+BreakBeforeBraces: Allman
+SpaceAfterCStyleCast: true
+AlignAfterOpenBracket: Align
+AllowShortFunctionsOnASingleLine: Empty

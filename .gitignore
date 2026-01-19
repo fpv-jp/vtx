@@ -1,0 +1,7 @@
+vtx*
+*.o
+
+compile_commands.json
+.cache/
+
+*.pem
