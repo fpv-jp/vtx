@@ -19,6 +19,7 @@ typedef struct
   PlatformType platform;
   const gchar *network_interface;
   const gchar *video_profile;
+  const gchar *flight_controller;
 } MediaParams;
 
 gboolean vtx_pipeline_parse_media_params(JsonObject *root_obj, MediaParams *mediaParams);

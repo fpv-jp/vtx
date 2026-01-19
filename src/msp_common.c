@@ -81,8 +81,9 @@ static int is_flight_controller(const char *port_name)
     printf("Flight controller detected: VID=%s PID=%s on %s\n", vid, pid, port_name);
     return 1;
   }
+
   // Exclude Raspberry Pi's built-in UART (usually ttyAMA0 or ttyS0)
-  if (strstr(dev_name, "ttyAMA") != NULL || strstr(dev_name, "ttyS") == NULL)  // Fixed: was == 0, should be == NULL
+  if (strstr(dev_name, "ttyAMA") != NULL || strstr(dev_name, "ttyS") != NULL)
   {
     return 0;
   }

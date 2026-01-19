@@ -202,6 +202,42 @@ void vtx_soup_on_message(SoupWebsocketConnection *conn, SoupWebsocketDataType ty
           vtx_ws_send(ws_conn, RECEIVER_SYSTEM_ERROR, ws1Id, ws2Id_, error_messeage);
           g_free(ws2Id_);
         }
+        else if (params.flight_controller)
+        {
+          // Cleanup existing MSP connection if any
+          vtx_msp_cleanup_global();
+
+          // Open new MSP connection with selected flight controller
+          MSP *msp = g_malloc(sizeof(MSP));
+          if (vtx_msp_init(msp, params.flight_controller, B115200) == 1)
+          {
+            vtx_msp_set_global(msp);
+            gst_println("Flight controller opened: %s", params.flight_controller);
+
+            if (!vtx_pipeline_start(&params))
+            {
+              JsonObject *error_messeage = json_object_new();
+              json_object_set_string_member(error_messeage, "message", "Failed to start pipeline");
+              vtx_ws_send(ws_conn, RECEIVER_SYSTEM_ERROR, ws1Id, ws2Id_, error_messeage);
+              g_free(ws2Id_);
+            }
+            else
+            {
+              app_state = STREAM_REQUEST_ACCEPT;
+              g_free(ws2Id_);
+            }
+          }
+          else
+          {
+            g_free(msp);
+            JsonObject *error_messeage = json_object_new();
+            gchar *error_msg = g_strdup_printf("Failed to open flight controller: %s", params.flight_controller);
+            json_object_set_string_member(error_messeage, "message", error_msg);
+            vtx_ws_send(ws_conn, RECEIVER_SYSTEM_ERROR, ws1Id, ws2Id_, error_messeage);
+            g_free(error_msg);
+            g_free(ws2Id_);
+          }
+        }
         else if (!vtx_pipeline_start(&params))
         {
           JsonObject *error_messeage = json_object_new();

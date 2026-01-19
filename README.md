@@ -49,6 +49,9 @@ sudo usermod -aG docker $(whoami)
 
 # GPU access
 sudo usermod -aG render $(whoami)
+
+# FC access
+sudo usermod -aG dialout $USER
 ```
 
 > **Note:** Log out and back in for group changes to take effect.
@@ -59,7 +62,7 @@ sudo usermod -aG render $(whoami)
 make all PLATFORM=LINUX_X86
 ```
 
-## Deployment
+## Install
 
 ### 1. Start the Signaling Server
 
