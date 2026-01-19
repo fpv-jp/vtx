@@ -1,21 +1,109 @@
 # vtx
-Using GStreamer to transmit video and telemetry
 
-# ⚠️documentation is currently being written.
+Video and telemetry transmission using GStreamer.
 
+> **Note:** Documentation is under active development.
+
+## Prerequisites
+
+### Development Tools
+
+```bash
+sudo apt install -y curl git bear ethtool nodejs npm docker.io
 ```
 
-sudo apt install -y curl git linux-headers-generic build-essential dkms ethtool nodejs golang npm docker.io
+### Build Dependencies
 
+```bash
 sudo apt install -y libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev libsoup-3.0-dev v4l-utils libjson-glib-dev libnice-dev libssl-dev
+```
 
-sudo apt-get install -y gstreamer1.0-tools gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-nice gstreamer1.0-vaapi gstreamer1.0-alsa
+### Runtime Dependencies
 
-sudo mv /usr/lib/x86_64-linux-gnu/gstreamer-1.0/libgstpulseaudio.so /usr/lib/x86_64-linux-gnu/gstreamer-1.0/libgstpulseaudio.so.disable
+```bash
+sudo apt install -y gstreamer1.0-tools gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-nice gstreamer1.0-vaapi gstreamer1.0-alsa
+```
 
-sudo usermod -a -G docker `whoami`
-sudo usermod -a -G render `whoami`
+### GStreamer Plugin Configuration
 
-sudo nmcli connection modify "???SSID???" connection.autoconnect yes
-sudo nmcli connection modify "???SSID???" connection.autoconnect-priority 10
+Disable conflicting plugins to ensure proper hardware access:
+
+```bash
+GST=$(pkg-config --variable=pluginsdir gstreamer-1.0)
+
+# Use ALSA instead of PulseAudio
+[ -f "$GST/libgstpulseaudio.so" ] && sudo mv "$GST/libgstpulseaudio.so" "$GST/libgstpulseaudio.so.disabled"
+
+# Use V4L2 instead of libcamera
+[ -f "$GST/libgstlibcamera.so" ] && sudo mv "$GST/libgstlibcamera.so" "$GST/libgstlibcamera.so.disabled"
+
+# Disable PipeWire
+[ -f "$GST/libgstpipewire.so" ] && sudo mv "$GST/libgstpipewire.so" "$GST/libgstpipewire.so.disabled"
+```
+
+### User Group Configuration
+
+```bash
+# Docker access
+sudo usermod -aG docker $(whoami)
+
+# GPU access
+sudo usermod -aG render $(whoami)
+```
+
+> **Note:** Log out and back in for group changes to take effect.
+
+## Building
+
+```bash
+make all PLATFORM=LINUX_X86
+```
+
+## Deployment
+
+### 1. Start the Signaling Server
+
+```bash
+docker run -itd \
+  --user root \
+  --name fpvjp-app \
+  -p 443:443 \
+  --restart unless-stopped \
+  fpvjp/app:latest
+```
+
+### 2. Extract CA Certificate
+
+```bash
+docker cp fpvjp-app:/app/certificate/server-ca-cert.pem .
+```
+
+### 3. Install as System Service
+
+```bash
+cd service
+sudo bash setup.sh
+```
+
+## Development
+
+To run vtx manually for debugging:
+
+```bash
+# Stop and disable the system service
+sudo systemctl stop vtx.service
+sudo systemctl disable vtx.service
+
+# Run manually
+./vtx
+```
+
+## Service Management
+
+```bash
+sudo systemctl status vtx.service    # Check status
+sudo systemctl start vtx.service     # Start service
+sudo systemctl stop vtx.service      # Stop service
+sudo systemctl restart vtx.service   # Restart service
+sudo journalctl -u vtx.service -f    # View logs
 ```
