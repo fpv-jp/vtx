@@ -181,18 +181,41 @@ void vtx_dc_cleanup(void)
 // --- vtx_msp_flight_controller ----------------------------------
 void vtx_msp_flight_controller(JsonObject *vtx_capabilities)
 {
-  const char *port = vtx_msp_detect();
-  JsonObject *msp_board_info = NULL;
-  JsonObject *msp_status = NULL;
+  char **ports = NULL;
+  int port_count = vtx_msp_detect_all(&ports);
 
-  if (port)
+  if (port_count == 0)
   {
+    gst_println("No flight controllers detected");
+    return;
+  }
+
+  gst_println("Number of detected ports: %d", port_count);
+  for (int i = 0; i < port_count; i++)
+  {
+    gst_println("  [%d] %s", i, ports[i]);
+  }
+
+  JsonArray *flight_controllers = json_array_new();
+
+  for (int i = 0; i < port_count; i++)
+  {
+    const char *port = ports[i];
+    JsonObject *fc_info = json_object_new();
+    JsonObject *msp_board_info = NULL;
+    JsonObject *msp_status = NULL;
+
+    json_object_set_string_member(fc_info, "port", port);
+
     MSP *msp = g_malloc(sizeof(MSP));
     if (vtx_msp_init(msp, port, B115200) == 1)
     {
-      // Keep MSP connection alive and store in global variable
-      vtx_msp_set_global(msp);
-      gst_println("MSP connection established and stored globally");
+      // Store the first successful MSP connection globally
+      if (g_msp == NULL)
+      {
+        vtx_msp_set_global(msp);
+        gst_println("MSP connection established and stored globally: %s", port);
+      }
 
       // Get board info
       MspBoardInfoData board_info;
@@ -215,6 +238,7 @@ void vtx_msp_flight_controller(JsonObject *vtx_capabilities)
         json_object_set_int_member(msp_board_info, "sample_rate_hz", board_info.sample_rate_hz);
         json_object_set_int_member(msp_board_info, "configuration_problems", board_info.configuration_problems);
       }
+
       // Get status - Try MSP_STATUS_EX first, fallback to MSP_STATUS
       MspStatusExData status_ex;
 
@@ -250,26 +274,39 @@ void vtx_msp_flight_controller(JsonObject *vtx_capabilities)
           json_object_set_int_member(msp_status, "current_pid_profile", status.current_pid_profile);
         }
       }
+
+      // Close MSP connection if not stored globally
+      if (msp != g_msp)
+      {
+        vtx_msp_close(msp);
+        g_free(msp);
+      }
     }
     else
     {
       g_free(msp);
     }
+
+    if (msp_board_info)
+    {
+      json_object_set_object_member(fc_info, "msp_board_info", msp_board_info);
+    }
+
+    if (msp_status)
+    {
+      json_object_set_object_member(fc_info, "msp_status", msp_status);
+    }
+
+    json_array_add_object_element(flight_controllers, fc_info);
+
+    // Free port string
+    free(ports[i]);
   }
 
-  if (msp_board_info)
-  {
-    gst_println("----- MSP Board Info -----");
-    print_json_object(msp_board_info);
-    json_object_set_object_member(vtx_capabilities, "msp_board_info", msp_board_info);
-  }
+  // Free ports array
+  free(ports);
 
-  if (msp_status)
-  {
-    gst_println("----- MSP Status -----");
-    print_json_object(msp_status);
-    json_object_set_object_member(vtx_capabilities, "msp_status", msp_status);
-  }
+  json_object_set_array_member(vtx_capabilities, "flight_controllers", flight_controllers);
 }
 
 // --- vtx_send_msp_raw_imu ----------------------------------

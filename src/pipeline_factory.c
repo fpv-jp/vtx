@@ -79,6 +79,7 @@ gboolean vtx_pipeline_parse_media_params(JsonObject *o, MediaParams *p)
   p->platform = PLATFORM;
   p->network_interface = json_object_has_member(o, "network_interface") ? json_object_get_string_member(o, "network_interface") : NULL;
   p->video_profile = json_object_has_member(o, "video_profile") ? json_object_get_string_member(o, "video_profile") : NULL;
+  p->flight_controller = json_object_has_member(o, "flight_controller") ? json_object_get_string_member(o, "flight_controller") : NULL;
 
   gst_println("=== MediaParams parsed ===\n");
   gst_println("MediaParams {");
@@ -91,6 +92,7 @@ gboolean vtx_pipeline_parse_media_params(JsonObject *o, MediaParams *p)
   gst_println("  platform: %d", p->platform);
   gst_println("  network_interface: %s", p->network_interface ? p->network_interface : "NULL");
   gst_println("  video_profile: %s", p->video_profile ? p->video_profile : "NULL");
+  gst_println("  flight_controller: %s", p->flight_controller ? p->flight_controller : "NULL");
   gst_println("}\n");
 
   return TRUE;
