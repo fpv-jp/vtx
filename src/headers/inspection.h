@@ -18,4 +18,4 @@ JsonArray *vtx_nic_inspection(void);
 
 #define MAX_ALLOWED_CODECS 16
 
-JsonObject *vtx_codecs_supported_inspection(void);
+JsonObject *vtx_supported_codec_inspection(void);

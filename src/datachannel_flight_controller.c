@@ -179,15 +179,17 @@ void vtx_dc_cleanup(void)
 }
 
 // --- vtx_msp_flight_controller ----------------------------------
-void vtx_msp_flight_controller(JsonObject *vtx_capabilities)
+JsonArray *vtx_msp_flight_controller(void)
 {
+  JsonArray *flight_controllers = json_array_new();
+
   char **ports = NULL;
   int port_count = vtx_msp_detect_all(&ports);
 
   if (port_count == 0)
   {
     gst_println("No flight controllers detected");
-    return;
+    return flight_controllers;
   }
 
   gst_println("Number of detected ports: %d", port_count);
@@ -195,8 +197,6 @@ void vtx_msp_flight_controller(JsonObject *vtx_capabilities)
   {
     gst_println("  [%d] %s", i, ports[i]);
   }
-
-  JsonArray *flight_controllers = json_array_new();
 
   for (int i = 0; i < port_count; i++)
   {
@@ -306,7 +306,7 @@ void vtx_msp_flight_controller(JsonObject *vtx_capabilities)
   // Free ports array
   free(ports);
 
-  json_object_set_array_member(vtx_capabilities, "flight_controllers", flight_controllers);
+  return flight_controllers;
 }
 
 // --- vtx_send_msp_raw_imu ----------------------------------
