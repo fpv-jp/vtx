@@ -7,11 +7,10 @@ GMainLoop *loop = NULL;
 
 AppState app_state = APP_STATE_UNKNOWN;
 
-extern void test_vtx_media_device_inspection (void);
-extern void test_vtx_codecs_supported_inspection (void);
-extern void test_vtx_msp_get_board_info (void);
-extern void test_vtx_msp_get_status (void);
-extern void test_vtx_msp_get_status_ex (void);
+extern void test_vtx_nic_inspection (void);
+extern void test_vtx_device_load_launch_entries (void);
+extern void test_vtx_supported_codec_inspection (void);
+extern void test_vtx_msp_flight_controller (void);
 
 void
 setUp (void)
@@ -27,10 +26,9 @@ int
 main (void)
 {
   UNITY_BEGIN ();
-  RUN_TEST (test_vtx_media_device_inspection);
-  RUN_TEST (test_vtx_codecs_supported_inspection);
-  RUN_TEST (test_vtx_msp_get_board_info);
-  RUN_TEST (test_vtx_msp_get_status);
-  RUN_TEST (test_vtx_msp_get_status_ex);
+  RUN_TEST (test_vtx_nic_inspection);
+  RUN_TEST (test_vtx_device_load_launch_entries);
+  RUN_TEST (test_vtx_supported_codec_inspection);
+  RUN_TEST (test_vtx_msp_flight_controller);
   return UNITY_END ();
 }

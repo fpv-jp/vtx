@@ -94,7 +94,7 @@ extern guint timeout_id_msp_battery_state;
 
 extern guint timeout_id_wpa_supplicant;
 
-void vtx_msp_flight_controller(JsonObject *vtx_capabilities);
+JsonArray *vtx_msp_flight_controller(void);
 
 gboolean vtx_send_msp_raw_imu(gpointer user_data);
 

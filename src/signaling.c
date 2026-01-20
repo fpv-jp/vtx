@@ -151,18 +151,18 @@ void vtx_soup_on_message(SoupWebsocketConnection *conn, SoupWebsocketDataType ty
         // gst_println("----- Media Device capabilities -----");
         // print_json_array(device_capabilities);
 
-        JsonObject *codecs_capabilities = vtx_codecs_supported_inspection();
+        JsonObject *codecs_capabilities = vtx_supported_codec_inspection();
         // gst_println("----- Supported Codecs capabilities -----");
         // print_json_object(codecs_capabilities);
+
+        JsonArray *flight_controllers = vtx_msp_flight_controller();
+        // gst_println("----- Flight Controllers capabilities -----");
+        // print_json_array(flight_controllers);
 
         json_object_set_array_member(vtx_capabilities, "network", network_interfaces);
         json_object_set_array_member(vtx_capabilities, "devices", device_capabilities);
         json_object_set_object_member(vtx_capabilities, "codecs", codecs_capabilities);
-
-        // ------------------------------------------
-        // MSP data collection
-        vtx_msp_flight_controller(vtx_capabilities);
-        // ------------------------------------------
+        json_object_set_array_member(vtx_capabilities, "flight_controllers", flight_controllers);
 
         gst_println("<<< %d RECEIVER_MEDIA_DEVICE_LIST_RESPONSE", RECEIVER_MEDIA_DEVICE_LIST_RESPONSE);
         vtx_ws_send(ws_conn, RECEIVER_MEDIA_DEVICE_LIST_RESPONSE, ws1Id, ws2Id_, vtx_capabilities);

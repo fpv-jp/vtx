@@ -149,7 +149,7 @@ static void vtx_copy_structure_to_json(const GstStructure *s, JsonObject *o)
   }
 }
 
-JsonObject *vtx_codecs_supported_inspection(void)
+JsonObject *vtx_supported_codec_inspection(void)
 {
   JsonArray *video_codecs_array = json_array_new();
   JsonArray *audio_codecs_array = json_array_new();

@@ -1,5 +1,6 @@
 *.o
 vtx
+vtx_test
 
 compile_commands.json
 .cache/
