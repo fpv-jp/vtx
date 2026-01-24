@@ -61,3 +61,6 @@ extern GstElement *pipeline, *webrtc;
 
 extern JsonArray *device_list;
 extern JsonObject *codec_list;
+
+// Platform detection (runtime)
+extern PlatformType g_platform;

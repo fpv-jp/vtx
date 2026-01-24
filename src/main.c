@@ -13,6 +13,9 @@ int main(int argc, char *argv[])
   gst_debug_set_default_threshold(GST_LEVEL_FIXME);
   gst_init(&argc, &argv);
 
+  // Detect platform at runtime
+  vtx_detect_platform();
+
   if (!vtx_check_gst_plugins())
   {
     goto out;

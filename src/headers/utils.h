@@ -4,6 +4,8 @@
 
 gchar *vtx_platform_to_string(PlatformType platform);
 
+void vtx_detect_platform(void);
+
 gboolean vtx_cleanup_and_quit_loop(const gchar *msg, AppState state);
 
 gboolean vtx_cleanup_connection(const gchar *msg);

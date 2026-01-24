@@ -1,29 +1,19 @@
-name: Dev Build and Release
+name: RC Build and Release
 
 on:
   push:
     tags:
-      - "v*-dev"
+      - "v*-rc*"  # v0.0.1-rc1, v0.0.1-rc2 形式
 
 jobs:
   build:
     strategy:
       matrix:
-        include:
-          - platform: RPI4_V4L2
-            runner: rpi4-v4l2
-          # - platform: RPI4_LIBCAM
-          #   runner: rpi4-libcam
-          # - platform: RPI5_LIBCAM
-          #   runner: rpi5-libcam
-          - platform: JETSON_NANO_2GB
-            runner: jetson-nano-2gb
-          # - platform: JETSON_ORIN_NANO_SUPER
-          #   runner: jetson-orin-nano-super
-          - platform: RADXA_ROCK_5B
-            runner: radxa-rock-5b
-          # - platform: RADXA_ROCK_5T
-          #   runner: radxa-rock-5t
+        runner:
+          - raspi5
+          - rock-5b
+          - jetson-2gb
+          - jetson-orin
       fail-fast: false
 
     runs-on:
@@ -33,8 +23,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Build for ${{ matrix.platform }}
-        run: make all PLATFORM=${{ matrix.platform }}
+      - name: Build
+        run: make all
 
       - name: Verify binary
         run: |
@@ -42,12 +32,14 @@ jobs:
             echo "✓ Binary created successfully"
             ls -lh vtx
             file vtx
+            echo "--- Platform detection test ---"
+            cat /proc/device-tree/model 2>/dev/null || echo "device-tree not available"
           else
             echo "✗ Binary not found"
             exit 1
           fi
 
-      - name: Rename binary with platform suffix
+      - name: Rename binary with runner suffix
         run: mv vtx vtx-${{ matrix.runner }}
 
       - name: Upload artifact
@@ -75,10 +67,31 @@ jobs:
           ls -R artifacts/
           find artifacts -type f
 
-      - name: Prepare release files
+      - name: Prepare release files with aliases
         run: |
           mkdir -p release
+
+          # Copy original binaries
           find artifacts -type f -exec cp -v {} release/ \;
+
+          # Create aliases for compatible platforms
+          # Raspberry Pi: raspi5 binary works for all Pi 4/5 with same OS
+          if [ -f release/vtx-raspi5 ]; then
+            cp release/vtx-raspi5 release/vtx-raspi4b
+            cp release/vtx-raspi5 release/vtx-raspi4cm
+          fi
+
+          # Radxa ROCK 5: rock-5b binary works for all ROCK 5 series
+          if [ -f release/vtx-rock-5b ]; then
+            cp release/vtx-rock-5b release/vtx-rock-5b-plus
+            cp release/vtx-rock-5b release/vtx-rock-5t
+          fi
+
+          # Jetson: each requires separate binary (no aliases)
+          # jetson-2gb -> vtx-jetson-2gb
+          # jetson-orin -> vtx-jetson-orin
+
+          echo "=== Final release files ==="
           ls -lh release/
 
       - name: Create Release

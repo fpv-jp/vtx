@@ -10,7 +10,7 @@ static gboolean s_supported_codecs_initialized = FALSE;
 
 static void vtx_platform_serviceable_codecs(void)
 {
-  switch (PLATFORM)
+  switch (g_platform)
   {
     case INTEL_MAC:
       s_platform_serviceable_codecs[0] = "vtenc_h264_hw";
