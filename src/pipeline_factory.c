@@ -76,7 +76,7 @@ gboolean vtx_pipeline_parse_media_params(JsonObject *o, MediaParams *p)
   p->audio_priority = json_object_get_string_member(o, "audio_priority");
   p->video_payload_type = json_object_get_int_member(o, "video_payload_type");
   p->audio_payload_type = json_object_get_int_member(o, "audio_payload_type");
-  p->platform = PLATFORM;
+  p->platform = g_platform;
   p->network_interface = json_object_has_member(o, "network_interface") ? json_object_get_string_member(o, "network_interface") : NULL;
   p->video_profile = json_object_has_member(o, "video_profile") ? json_object_get_string_member(o, "video_profile") : NULL;
   p->flight_controller = json_object_has_member(o, "flight_controller") ? json_object_get_string_member(o, "flight_controller") : NULL;

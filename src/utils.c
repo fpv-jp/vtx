@@ -1,9 +1,81 @@
 #include "headers/utils.h"
 
 #include <locale.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "headers/data_channel.h"
 #include "headers/wpa.h"
+
+// Global platform variable (detected at runtime)
+PlatformType g_platform = UNKNOWN;
+
+// --- vtx_detect_platform ----------------------------------
+void vtx_detect_platform(void)
+{
+  gst_println("----- Detecting platform -----");
+
+  // Try /proc/device-tree/model first (Linux ARM devices)
+  FILE *f = fopen("/proc/device-tree/model", "r");
+  if (f)
+  {
+    char model[256] = {0};
+    if (fgets(model, sizeof(model), f))
+    {
+      fclose(f);
+      gst_println("  Device model: %s", model);
+
+      // Raspberry Pi detection
+      if (strstr(model, "Raspberry Pi 5"))
+      {
+        g_platform = RPI5_LIBCAM;
+      }
+      else if (strstr(model, "Raspberry Pi 4"))
+      {
+        g_platform = RPI4_V4L2;  // Default to V4L2 for Pi 4
+      }
+      // Radxa ROCK 5 series detection
+      else if (strstr(model, "ROCK 5"))
+      {
+        g_platform = RADXA_ROCK_5B;  // Use 5B for all ROCK 5 series
+      }
+      // Jetson detection (placeholder - adjust based on actual model strings)
+      else if (strstr(model, "Jetson Orin"))
+      {
+        g_platform = JETSON_ORIN_NANO_SUPER;
+      }
+      else if (strstr(model, "Jetson Nano"))
+      {
+        g_platform = JETSON_NANO_2GB;
+      }
+
+      if (g_platform != UNKNOWN)
+      {
+        gst_println("  Detected platform: %s", vtx_platform_to_string(g_platform));
+        return;
+      }
+    }
+    else
+    {
+      fclose(f);
+    }
+  }
+
+  // Fallback: Check for macOS or Linux x86
+#ifdef __APPLE__
+  g_platform = INTEL_MAC;
+  gst_println("  Detected platform: %s (macOS)", vtx_platform_to_string(g_platform));
+  return;
+#endif
+
+#if defined(__linux__) && defined(__x86_64__)
+  g_platform = LINUX_X86;
+  gst_println("  Detected platform: %s (x86_64)", vtx_platform_to_string(g_platform));
+  return;
+#endif
+
+  gst_printerrln("  WARNING: Could not detect platform, using UNKNOWN");
+}
 
 // --- vtx_platform_to_string ----------------------------------
 gchar *vtx_platform_to_string(PlatformType platform)
@@ -186,7 +258,7 @@ gboolean vtx_check_gst_plugins(void)
     g_ptr_array_add(needed, g_strdup(common_plugins[i]));
   }
 
-  switch (PLATFORM)
+  switch (g_platform)
   {
     case INTEL_MAC:
       g_ptr_array_add(needed, g_strdup("applemedia"));

@@ -10,8 +10,6 @@ INCLUDE_DIR   := $(SRC_DIR)/headers
 UNITY_DIR     := $(SRC_DIR_TEST)/unity
 PKG_CONFIG    := $(shell which pkg-config)
 
-PLATFORM ?= INTEL_MAC
-
 # ========= SourceCode =========
 SRCS          := $(wildcard $(SRC_DIR)/*.c)
 SRCS_NO_MAIN  := $(filter-out $(SRC_DIR)/main.c, $(SRCS))
@@ -26,7 +24,7 @@ ifeq ($(shell $(PKG_CONFIG) --exists $(SOUP_PKG) && echo yes || echo no),no)
 endif
 
 # ========= Flag & Link =========
-CFLAGS += -DPLATFORM=$(PLATFORM) -DGST_USE_UNSTABLE_API \
+CFLAGS += -DGST_USE_UNSTABLE_API \
           `$(PKG_CONFIG) --cflags gstreamer-1.0 gstreamer-webrtc-1.0 $(SOUP_PKG) json-glib-1.0 nice` \
           -I$(INCLUDE_DIR) -I$(UNITY_DIR)
 
@@ -70,31 +68,15 @@ bear:
 
 # ========= Help =========
 help:
-	@echo "Usage: make [target] [PLATFORM=type]"
+	@echo "Usage: make [target]"
 	@echo ""
-	@echo "Example:"
-	@echo "  make all PLATFORM=LINUX_X86"
-	@echo "  make all PLATFORM=RPI4_V4L2"
-	@echo "  make all PLATFORM=JETSON_NANO_2GB"
-	@echo "  make all PLATFORM=JETSON_ORIN_NANO_SUPER"
-	@echo "  make all PLATFORM=RADXA_ROCK_5B"
-	@echo "  make all PLATFORM=RADXA_ROCK_5T"
-	@echo "  make all PLATFORM=RPI4_LIBCAM"
-	@echo "  make all PLATFORM=RPI5_LIBCAM"
-	@echo "Test:"
-	@echo "  make test PLATFORM=LINUX_X86"
-	@echo "  make test PLATFORM=RPI4_V4L2"
-	@echo "  make test PLATFORM=JETSON_NANO_2GB"
-	@echo "  make test PLATFORM=JETSON_ORIN_NANO_SUPER"
-	@echo "  make test PLATFORM=RADXA_ROCK_5B"
-	@echo "  make test PLATFORM=RADXA_ROCK_5T"
-	@echo "  make test PLATFORM=RPI4_LIBCAM"
-	@echo "  make test PLATFORM=RPI5_LIBCAM"
+	@echo "Platform is auto-detected at runtime via /proc/device-tree/model"
+	@echo "Supported platforms: RPI4, RPI5, ROCK 5, Jetson Nano, Jetson Orin, Intel Mac, Linux x86"
 	@echo ""
 	@echo "Targets:"
 	@echo "  all         - Build production binary"
 	@echo "  test        - Build and run unit tests with Unity"
 	@echo "  clean       - Clean production build"
 	@echo "  test-clean  - Clean test build"
-# 	@echo "  fmt         - Format code with gst-indent"
+	@echo "  bear        - Generate compile_commands.json"
 	@echo "  help        - Show this help message"

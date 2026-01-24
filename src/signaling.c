@@ -141,7 +141,7 @@ void vtx_soup_on_message(SoupWebsocketConnection *conn, SoupWebsocketDataType ty
         JsonObject *vtx_capabilities = json_object_new();
 
         json_object_set_string_member(vtx_capabilities, "source", "gstreamer");
-        json_object_set_string_member(vtx_capabilities, "platform", vtx_platform_to_string(PLATFORM));
+        json_object_set_string_member(vtx_capabilities, "platform", vtx_platform_to_string(g_platform));
 
         JsonArray *network_interfaces = vtx_nic_inspection();
         // gst_println("----- Network Interfaces capabilities -----");
