@@ -10,6 +10,83 @@
 // Global platform variable (detected at runtime)
 PlatformType g_platform = UNKNOWN;
 
+// Global GPU vendor variable (detected at runtime, LINUX_X86 only)
+GpuVendor g_gpu_vendor = GPU_VENDOR_UNKNOWN;
+
+// --- vtx_detect_gpu_vendor ----------------------------------
+// Detect GPU vendor by reading /sys/class/drm/card*/device/vendor
+// Vendor IDs: Intel=0x8086, AMD=0x1002, NVIDIA=0x10de
+void vtx_detect_gpu_vendor(void)
+{
+  if (g_platform != LINUX_X86)
+  {
+    return;
+  }
+
+  gst_println("----- Detecting GPU vendor -----");
+
+  // Check DRM cards for GPU vendor
+  for (int card = 0; card < 16; card++)
+  {
+    char vendor_path[256];
+    snprintf(vendor_path, sizeof(vendor_path), "/sys/class/drm/card%d/device/vendor", card);
+
+    FILE *f = fopen(vendor_path, "r");
+    if (!f) continue;
+
+    char vendor_id[32] = {0};
+    if (fgets(vendor_id, sizeof(vendor_id), f))
+    {
+      fclose(f);
+
+      // Parse vendor ID (format: 0x1234)
+      unsigned int vid = 0;
+      if (sscanf(vendor_id, "0x%x", &vid) == 1 || sscanf(vendor_id, "%x", &vid) == 1)
+      {
+        switch (vid)
+        {
+          case 0x8086:  // Intel
+            g_gpu_vendor = GPU_VENDOR_INTEL;
+            gst_println("  Detected GPU vendor: Intel (card%d)", card);
+            return;
+          case 0x1002:  // AMD
+            g_gpu_vendor = GPU_VENDOR_AMD;
+            gst_println("  Detected GPU vendor: AMD (card%d)", card);
+            return;
+          case 0x10de:  // NVIDIA
+            g_gpu_vendor = GPU_VENDOR_NVIDIA;
+            gst_println("  Detected GPU vendor: NVIDIA (card%d)", card);
+            return;
+          default:
+            break;
+        }
+      }
+    }
+    else
+    {
+      fclose(f);
+    }
+  }
+
+  gst_printerrln("  WARNING: Could not detect GPU vendor, using UNKNOWN");
+}
+
+// --- vtx_gpu_vendor_to_string ----------------------------------
+gchar *vtx_gpu_vendor_to_string(GpuVendor vendor)
+{
+  switch (vendor)
+  {
+    case GPU_VENDOR_INTEL:
+      return "INTEL";
+    case GPU_VENDOR_AMD:
+      return "AMD";
+    case GPU_VENDOR_NVIDIA:
+      return "NVIDIA";
+    default:
+      return "UNKNOWN";
+  }
+}
+
 // --- vtx_detect_platform ----------------------------------
 void vtx_detect_platform(void)
 {
@@ -269,13 +346,23 @@ gboolean vtx_check_gst_plugins(void)
       break;
 
     case LINUX_X86:
-      g_ptr_array_add(needed, g_strdup("vaapi"));
-      g_ptr_array_add(needed, g_strdup("va"));
-      g_ptr_array_add(needed, g_strdup("vpx"));
-      g_ptr_array_add(needed, g_strdup("svtav1"));
+      switch (g_gpu_vendor)
+      {
+        case GPU_VENDOR_INTEL:
+          g_ptr_array_add(needed, g_strdup("va"));  // Intel VA-API HW encoders
+          break;
+        case GPU_VENDOR_AMD:
+          g_ptr_array_add(needed, g_strdup("amfcodec"));  // AMD AMF HW encoders
+          break;
+        case GPU_VENDOR_NVIDIA:
+          g_ptr_array_add(needed, g_strdup("nvcodec"));  // NVIDIA NVCODEC HW encoders
+          break;
+        default:
+          gst_printerrln("  WARNING: Unknown GPU vendor, skipping HW encoder plugin check");
+          break;
+      }
       g_ptr_array_add(needed, g_strdup("alsa"));
       g_ptr_array_add(needed, g_strdup("video4linux2"));
-      g_ptr_array_add(needed, g_strdup("waylandsink"));
       break;
 
     case RPI4_V4L2:

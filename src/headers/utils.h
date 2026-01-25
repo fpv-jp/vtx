@@ -4,7 +4,11 @@
 
 gchar *vtx_platform_to_string(PlatformType platform);
 
+gchar *vtx_gpu_vendor_to_string(GpuVendor vendor);
+
 void vtx_detect_platform(void);
+
+void vtx_detect_gpu_vendor(void);
 
 gboolean vtx_cleanup_and_quit_loop(const gchar *msg, AppState state);
 

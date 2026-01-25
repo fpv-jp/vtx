@@ -18,6 +18,14 @@ typedef enum
   RPI5_LIBCAM,
 } PlatformType;
 
+typedef enum
+{
+  GPU_VENDOR_UNKNOWN = 0,
+  GPU_VENDOR_INTEL,
+  GPU_VENDOR_AMD,
+  GPU_VENDOR_NVIDIA,
+} GpuVendor;
+
 typedef enum AppState
 {
   APP_STATE_UNKNOWN = 0,
@@ -64,3 +72,6 @@ extern JsonObject *codec_list;
 
 // Platform detection (runtime)
 extern PlatformType g_platform;
+
+// GPU vendor detection (runtime, LINUX_X86 only)
+extern GpuVendor g_gpu_vendor;
