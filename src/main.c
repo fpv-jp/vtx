@@ -16,6 +16,9 @@ int main(int argc, char *argv[])
   // Detect platform at runtime
   vtx_detect_platform();
 
+  // Detect GPU vendor for LINUX_X86
+  vtx_detect_gpu_vendor();
+
   if (!vtx_check_gst_plugins())
   {
     goto out;

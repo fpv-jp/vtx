@@ -23,13 +23,49 @@ static void vtx_platform_serviceable_codecs(void)
       break;
 
     case LINUX_X86:
-      s_platform_serviceable_codecs[0] = "vaapih264enc";  // Supported on PCs with Intel chips.
-      s_platform_serviceable_codecs[1] = "vaapih265enc";  // Supported on PCs with Intel chips.
-      s_platform_serviceable_codecs[2] = "vp8enc";
-      s_platform_serviceable_codecs[3] = "vp9enc";
-      s_platform_serviceable_codecs[4] = "svtav1enc";  // This is for experimental purposes.
-      s_platform_serviceable_codecs[5] = "opusenc";
-      s_platform_serviceable_codecs[6] = "mulawenc";
+  // ┌────────┬──────────────────────────────────────────────────────────┬───────────────────────┐
+  // │  GPU   │                       エンコーダー                         │         説明           │
+  // ├────────┼──────────────────────────────────────────────────────────┼───────────────────────┤
+  // │ AMD    │ amfav1enc, amfh264enc, amfh265enc                        │ AMF API               │
+  // ├────────┼──────────────────────────────────────────────────────────┼───────────────────────┤
+  // │ NVIDIA │ nvav1enc, nvh264enc, nvh265enc                           │ NVCODEC API CUDA Mode │
+  // ├────────┼──────────────────────────────────────────────────────────┼───────────────────────┤
+  // │ Intel  │ vaav1enc, vah264enc, vah264lpenc, vah265enc, vah265lpenc │ VA-API                │
+  // └────────┴──────────────────────────────────────────────────────────┴───────────────────────┘
+      switch (g_gpu_vendor)
+      {
+        case GPU_VENDOR_AMD:
+          // AMD GPU (AMF API)
+          s_platform_serviceable_codecs[0] = "amfav1enc";
+          s_platform_serviceable_codecs[1] = "amfh264enc";
+          s_platform_serviceable_codecs[2] = "amfh265enc";
+          s_platform_serviceable_codecs[3] = "opusenc";
+          s_platform_serviceable_codecs[4] = "mulawenc";
+          break;
+        case GPU_VENDOR_NVIDIA:
+          // NVIDIA GPU (NVCODEC API CUDA Mode)
+          s_platform_serviceable_codecs[0] = "nvav1enc";
+          s_platform_serviceable_codecs[1] = "nvh264enc";
+          s_platform_serviceable_codecs[2] = "nvh265enc";
+          s_platform_serviceable_codecs[3] = "opusenc";
+          s_platform_serviceable_codecs[4] = "mulawenc";
+          break;
+        case GPU_VENDOR_INTEL:
+          // Intel GPU (VA-API)
+          s_platform_serviceable_codecs[0] = "vaav1enc";
+          s_platform_serviceable_codecs[1] = "vah264enc";
+          s_platform_serviceable_codecs[2] = "vah264lpenc";
+          s_platform_serviceable_codecs[3] = "vah265enc";
+          s_platform_serviceable_codecs[4] = "vah265lpenc";
+          s_platform_serviceable_codecs[5] = "opusenc";
+          s_platform_serviceable_codecs[6] = "mulawenc";
+          break;
+        default:
+          gst_printerrln("Unknown GPU vendor for LINUX_X86, no HW encoders available");
+          s_platform_serviceable_codecs[0] = "opusenc";
+          s_platform_serviceable_codecs[1] = "mulawenc";
+          break;
+      }
       break;
 
     case RPI4_V4L2:
