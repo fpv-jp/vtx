@@ -121,7 +121,7 @@ void vtx_soup_on_message(SoupWebsocketConnection *conn, SoupWebsocketDataType ty
       if (json_object_has_member(object, "sessionId"))
       {
         ws1Id = g_strdup(json_object_get_string_member(object, "sessionId"));
-        gst_println("assigned session id : %s", ws1Id);
+        gst_println("assigned TX session ID : %s", ws1Id);
         app_state = SERVER_REGISTERED;
       }
       else
@@ -385,7 +385,7 @@ void vtx_soup_session_websocket_connect_async(void)
   if (use_custom_cert)
   {
     gst_println("Using custom CA certificate: %s", server_ca_cert);
-    gst_println("[Config] SERVER_CERTIFICATE_AUTHORITY: %s", certificate);
+    // gst_println("[Config] SERVER_CERTIFICATE_AUTHORITY: %s", certificate);
   }
   else
   {

@@ -105,11 +105,15 @@ void vtx_detect_platform(void)
       // Raspberry Pi detection
       if (strstr(model, "Raspberry Pi 5"))
       {
-        g_platform = RPI5_LIBCAM;
+        g_platform = RASPBERRY_PI_5;
+      }
+      else if (strstr(model, "Raspberry Pi Compute Module 4"))
+      {
+        g_platform = RASPBERRY_PI_4CM;
       }
       else if (strstr(model, "Raspberry Pi 4"))
       {
-        g_platform = RPI4_V4L2;  // Default to V4L2 for Pi 4
+        g_platform = RASPBERRY_PI_4B;
       }
       // Radxa ROCK 5 series detection
       else if (strstr(model, "ROCK 5"))
@@ -163,8 +167,12 @@ gchar *vtx_platform_to_string(PlatformType platform)
       return "INTEL_MAC";
     case LINUX_X86:
       return "LINUX_X86";
-    case RPI4_V4L2:
-      return "RPI4_V4L2";
+    case RASPBERRY_PI_4B:
+      return "RASPBERRY_PI_4B";
+    case RASPBERRY_PI_4CM:
+      return "RASPBERRY_PI_4CM";
+    case RASPBERRY_PI_5:
+      return "RASPBERRY_PI_5";
     case JETSON_NANO_2GB:
       return "JETSON_NANO_2GB";
     case JETSON_ORIN_NANO_SUPER:
@@ -173,10 +181,6 @@ gchar *vtx_platform_to_string(PlatformType platform)
       return "RADXA_ROCK_5B";
     case RADXA_ROCK_5T:
       return "RADXA_ROCK_5T";
-    case RPI4_LIBCAM:
-      return "RPI4_LIBCAM";
-    case RPI5_LIBCAM:
-      return "RPI5_LIBCAM";
     default:
       return "UNKNOWN";
   }
@@ -346,6 +350,7 @@ gboolean vtx_check_gst_plugins(void)
       break;
 
     case LINUX_X86:
+      g_ptr_array_add(needed, g_strdup("video4linux2"));// for v4l2src
       switch (g_gpu_vendor)
       {
         case GPU_VENDOR_INTEL:
@@ -362,48 +367,41 @@ gboolean vtx_check_gst_plugins(void)
           break;
       }
       g_ptr_array_add(needed, g_strdup("alsa"));
-      g_ptr_array_add(needed, g_strdup("video4linux2"));
       break;
 
-    case RPI4_V4L2:
-      g_ptr_array_add(needed, g_strdup("video4linux2"));
+    case RASPBERRY_PI_4B:
+    case RASPBERRY_PI_4CM:
+      g_ptr_array_add(needed, g_strdup("libcamera"));
+      g_ptr_array_add(needed, g_strdup("video4linux2"));  // for v4l2h264enc
+      g_ptr_array_add(needed, g_strdup("alsa"));
+      break;
+
+    case RASPBERRY_PI_5:
+      g_ptr_array_add(needed, g_strdup("libcamera"));
+      g_ptr_array_add(needed, g_strdup("openh264"));
       g_ptr_array_add(needed, g_strdup("alsa"));
       break;
 
     case JETSON_NANO_2GB:
-      g_ptr_array_add(needed, g_strdup("nvarguscamerasrc"));
-      g_ptr_array_add(needed, g_strdup("nvv4l2camerasrc"));
+      g_ptr_array_add(needed, g_strdup("nvarguscamerasrc")); // MIPI CSI
+      g_ptr_array_add(needed, g_strdup("nvv4l2camerasrc")); // USB
+      g_ptr_array_add(needed, g_strdup("nveglstreamsrc")); // Overlay
       g_ptr_array_add(needed, g_strdup("nvvideo4linux2"));
-      g_ptr_array_add(needed, g_strdup("nvvidconv"));
-      g_ptr_array_add(needed, g_strdup("nvvideocuda"));
       g_ptr_array_add(needed, g_strdup("alsa"));
       break;
 
     case JETSON_ORIN_NANO_SUPER:
-      g_ptr_array_add(needed, g_strdup("nvarguscamerasrc"));
-      g_ptr_array_add(needed, g_strdup("nvv4l2camerasrc"));
-      g_ptr_array_add(needed, g_strdup("nvvideo4linux2"));
-      g_ptr_array_add(needed, g_strdup("nvvidconv"));
+      g_ptr_array_add(needed, g_strdup("nvarguscamerasrc")); // MIPI CSI
+      g_ptr_array_add(needed, g_strdup("nvv4l2camerasrc")); // USB
+      g_ptr_array_add(needed, g_strdup("nveglstreamsrc")); // Overlay
+      g_ptr_array_add(needed, g_strdup("openh264"));
       g_ptr_array_add(needed, g_strdup("alsa"));
       break;
 
     case RADXA_ROCK_5B:
     case RADXA_ROCK_5T:
+      g_ptr_array_add(needed, g_strdup("video4linux2"));// for v4l2src
       g_ptr_array_add(needed, g_strdup("rockchipmpp"));
-      g_ptr_array_add(needed, g_strdup("video4linux2"));
-      g_ptr_array_add(needed, g_strdup("rkximage"));
-      g_ptr_array_add(needed, g_strdup("alsa"));
-      break;
-
-    case RPI4_LIBCAM:
-      g_ptr_array_add(needed, g_strdup("libcamera"));
-      g_ptr_array_add(needed, g_strdup("video4linux2"));
-      g_ptr_array_add(needed, g_strdup("alsa"));
-      break;
-
-    case RPI5_LIBCAM:
-      g_ptr_array_add(needed, g_strdup("libcamera"));
-      g_ptr_array_add(needed, g_strdup("openh264"));
       g_ptr_array_add(needed, g_strdup("alsa"));
       break;
 
