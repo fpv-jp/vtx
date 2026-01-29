@@ -9,13 +9,28 @@ Video and telemetry transmission using GStreamer.
 ### Development Tools
 
 ```bash
-sudo apt install -y curl git bear ethtool nodejs npm docker.io
+sudo apt install -y curl git bear ethtool
+```
+
+```bash
+sudo apt install -y nodejs npm
+mkdir -p ~/.npm-global
+npm config set prefix '~/.npm-global'
+echo 'export PATH=$HOME/.npm-global/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+```
+
+```bash
+sudo apt install -y docker.io
+sudo usermod -aG docker $(whoami)
 ```
 
 ### Build Dependencies
 
 ```bash
-sudo apt install -y libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev libsoup-3.0-dev v4l-utils libjson-glib-dev libnice-dev libssl-dev
+sudo apt install -y v4l-utils libasound2-dev libssl-dev libsoup-3.0-dev libjson-glib-dev libnice-dev
+
+sudo apt install -y libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev
 ```
 
 ### Runtime Dependencies
@@ -44,9 +59,6 @@ GST=$(pkg-config --variable=pluginsdir gstreamer-1.0)
 ### User Group Configuration
 
 ```bash
-# Docker access
-sudo usermod -aG docker $(whoami)
-
 # GPU access
 sudo usermod -aG render $(whoami)
 
