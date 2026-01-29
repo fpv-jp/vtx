@@ -12,7 +12,7 @@ static void vtx_platform_serviceable_codecs(void)
 {
   switch (g_platform)
   {
-    case INTEL_MAC:
+    case APPLE_MAC:
       s_platform_serviceable_codecs[0] = "vtenc_h264_hw";
       s_platform_serviceable_codecs[1] = "vtenc_h265_hw";
       s_platform_serviceable_codecs[2] = "vp8enc";
@@ -62,14 +62,26 @@ static void vtx_platform_serviceable_codecs(void)
           break;
         default:
           gst_printerrln("Unknown GPU vendor for LINUX_X86, no HW encoders available");
-          s_platform_serviceable_codecs[0] = "opusenc";
-          s_platform_serviceable_codecs[1] = "mulawenc";
+          s_platform_serviceable_codecs[0] = "openh264enc";
+          s_platform_serviceable_codecs[1] = "vp8enc";
+          s_platform_serviceable_codecs[2] = "vp9enc";
+          s_platform_serviceable_codecs[3] = "svtav1enc";  // This is for experimental purposes.
+          s_platform_serviceable_codecs[4] = "opusenc";
+          s_platform_serviceable_codecs[5] = "mulawenc";
           break;
       }
       break;
 
-    case RPI4_V4L2:
+    case RASPBERRY_PI_4B:
+    case RASPBERRY_PI_4CM:
       s_platform_serviceable_codecs[0] = "v4l2h264enc";
+      s_platform_serviceable_codecs[1] = "opusenc";
+      break;
+
+    case RASPBERRY_PI_5:
+      // VideoCore VII does not support HW encoding, decoding only.
+      // Use SW encoding (openh264).
+      s_platform_serviceable_codecs[0] = "openh264enc";
       s_platform_serviceable_codecs[1] = "opusenc";
       break;
 
@@ -84,11 +96,8 @@ static void vtx_platform_serviceable_codecs(void)
     case JETSON_ORIN_NANO_SUPER:
       // Orin Nano Super is does not support HW encoding. decoding only.
       // Use SW encoding.
-      s_platform_serviceable_codecs[0] = "x264enc";
-      s_platform_serviceable_codecs[1] = "x265enc";
-      s_platform_serviceable_codecs[2] = "vp8enc";
-      s_platform_serviceable_codecs[3] = "vp9enc";
-      s_platform_serviceable_codecs[4] = "opusenc";
+      s_platform_serviceable_codecs[0] = "openh264enc";
+      s_platform_serviceable_codecs[1] = "opusenc";
       break;
 
     case RADXA_ROCK_5B:
@@ -97,19 +106,6 @@ static void vtx_platform_serviceable_codecs(void)
       s_platform_serviceable_codecs[1] = "mpph265enc";
       s_platform_serviceable_codecs[2] = "mppvp8enc";
       s_platform_serviceable_codecs[3] = "opusenc";
-      break;
-
-    case RPI4_LIBCAM:
-      // VideoCore IV is supports HW encoding.
-      s_platform_serviceable_codecs[0] = "v4l2h264enc";
-      s_platform_serviceable_codecs[1] = "opusenc";
-      break;
-
-    case RPI5_LIBCAM:
-      // VideoCore VII is does not support HW encoding. decoding only.
-      // Use SW encoding.
-      s_platform_serviceable_codecs[0] = "openh264enc";
-      s_platform_serviceable_codecs[1] = "opusenc";
       break;
 
     default:
