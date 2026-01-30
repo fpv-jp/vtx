@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 #include "headers/data_channel.h"
 
@@ -45,21 +46,6 @@ void vtx_msp_cleanup_global(void)
 void vtx_dc_cleanup(void)
 {
   // Remove all timeout sources first
-  if (timeout_id_imu > 0)
-  {
-    g_source_remove(timeout_id_imu);
-    timeout_id_imu = 0;
-  }
-  if (timeout_id_gnss > 0)
-  {
-    g_source_remove(timeout_id_gnss);
-    timeout_id_gnss = 0;
-  }
-  if (timeout_id_bat > 0)
-  {
-    g_source_remove(timeout_id_bat);
-    timeout_id_bat = 0;
-  }
   if (timeout_id_msp_raw_imu > 0)
   {
     g_source_remove(timeout_id_msp_raw_imu);
@@ -107,24 +93,6 @@ void vtx_dc_cleanup(void)
     g_signal_emit_by_name(dc_cmd, "close");
     g_object_unref(dc_cmd);
     dc_cmd = NULL;
-  }
-  if (dc_imu)
-  {
-    g_signal_emit_by_name(dc_imu, "close");
-    g_object_unref(dc_imu);
-    dc_imu = NULL;
-  }
-  if (dc_gnss)
-  {
-    g_signal_emit_by_name(dc_gnss, "close");
-    g_object_unref(dc_gnss);
-    dc_gnss = NULL;
-  }
-  if (dc_bat)
-  {
-    g_signal_emit_by_name(dc_bat, "close");
-    g_object_unref(dc_bat);
-    dc_bat = NULL;
   }
   if (dc_msp_raw_imu)
   {
@@ -312,30 +280,22 @@ JsonArray *vtx_msp_flight_controller(void)
 // --- vtx_send_msp_raw_imu ----------------------------------
 gboolean vtx_send_msp_raw_imu(gpointer user_data)
 {
-  if (!dc_msp_raw_imu || !g_msp) return G_SOURCE_REMOVE;
+  if (!dc_msp_raw_imu) return G_SOURCE_REMOVE;
 
-  // javascript logic
+  // acc[3] + gyro[3] + mag[3] = 9 x int16 = 18 bytes
+  uint8_t response[32];  // 18 bytes + margin
+  int size = 0;
 
-  // case MSPCodes.MSP_RAW_IMU:
-  //     // 2048 for mpu6050, 1024 for mma (times 4 since we don't scale in the firmware)
-  //     // currently we are unable to differentiate between the sensor types, so we are going with 2048
-  //     FC.SENSOR_DATA.accelerometer[0] = data.read16() / 2048;
-  //     FC.SENSOR_DATA.accelerometer[1] = data.read16() / 2048;
-  //     FC.SENSOR_DATA.accelerometer[2] = data.read16() / 2048;
+  if (g_msp)
+  {
+    size = msp_request_raw(g_msp, MSP_RAW_IMU, response, sizeof(response));
+  }
+  else
+  {
+    memset(response, 0, 18);
+    size = 18;
+  }
 
-  //     // properly scaled
-  //     FC.SENSOR_DATA.gyroscope[0] = data.read16() * (4 / 16.4);
-  //     FC.SENSOR_DATA.gyroscope[1] = data.read16() * (4 / 16.4);
-  //     FC.SENSOR_DATA.gyroscope[2] = data.read16() * (4 / 16.4);
-
-  //     // no clue about scaling factor
-  //     FC.SENSOR_DATA.magnetometer[0] = data.read16();
-  //     FC.SENSOR_DATA.magnetometer[1] = data.read16();
-  //     FC.SENSOR_DATA.magnetometer[2] = data.read16();
-  //     break;
-
-  uint8_t response[32];
-  int size = msp_request_raw(g_msp, MSP_RAW_IMU, response, sizeof(response));
   if (size > 0)
   {
     GBytes *bytes = g_bytes_new(response, size);
@@ -349,25 +309,22 @@ gboolean vtx_send_msp_raw_imu(gpointer user_data)
 // --- vtx_send_msp_raw_gps ----------------------------------
 gboolean vtx_send_msp_raw_gps(gpointer user_data)
 {
-  if (!dc_msp_raw_gps || !g_msp) return G_SOURCE_REMOVE;
+  if (!dc_msp_raw_gps) return G_SOURCE_REMOVE;
 
-  // javascript logic
+  // u8 + u8 + i32 + i32 + u16 + u16 + u16 = 16 bytes
+  uint8_t response[16];
+  int size = 0;
 
-  // case MSPCodes.MSP_RAW_GPS:
-  //     FC.GPS_DATA.fix = data.readU8();
-  //     FC.GPS_DATA.numSat = data.readU8();
-  //     FC.GPS_DATA.latitude = data.read32();
-  //     FC.GPS_DATA.longitude = data.read32();
-  //     FC.GPS_DATA.alt = data.readU16();
-  //     FC.GPS_DATA.speed = data.readU16();
-  //     FC.GPS_DATA.ground_course = data.readU16();
-  //     if (semver.gte(FC.CONFIG.apiVersion, API_VERSION_1_46)) {
-  //         FC.GPS_DATA.positionalDop = data.readU16();
-  //     }
-  //     break;
+  if (g_msp)
+  {
+    size = msp_request_raw(g_msp, MSP_RAW_GPS, response, sizeof(response));
+  }
+  else
+  {
+    memset(response, 0, 16);
+    size = 16;
+  }
 
-  uint8_t response[32];
-  int size = msp_request_raw(g_msp, MSP_RAW_GPS, response, sizeof(response));
   if (size > 0)
   {
     GBytes *bytes = g_bytes_new(response, size);
@@ -381,18 +338,22 @@ gboolean vtx_send_msp_raw_gps(gpointer user_data)
 // --- vtx_send_msp_comp_gps ----------------------------------
 gboolean vtx_send_msp_comp_gps(gpointer user_data)
 {
-  if (!dc_msp_comp_gps || !g_msp) return G_SOURCE_REMOVE;
+  if (!dc_msp_comp_gps) return G_SOURCE_REMOVE;
 
-  // javascript logic
+  // u16 + u16 + u8 = 5 bytes
+  uint8_t response[8];
+  int size = 0;
 
-  // case MSPCodes.MSP_COMP_GPS:
-  //     FC.GPS_DATA.distanceToHome = data.readU16();
-  //     FC.GPS_DATA.directionToHome = data.readU16();
-  //     FC.GPS_DATA.update = data.readU8();
-  //     break;
+  if (g_msp)
+  {
+    size = msp_request_raw(g_msp, MSP_COMP_GPS, response, sizeof(response));
+  }
+  else
+  {
+    memset(response, 0, 5);
+    size = 5;
+  }
 
-  uint8_t response[32];
-  int size = msp_request_raw(g_msp, MSP_COMP_GPS, response, sizeof(response));
   if (size > 0)
   {
     GBytes *bytes = g_bytes_new(response, size);
@@ -406,18 +367,22 @@ gboolean vtx_send_msp_comp_gps(gpointer user_data)
 // --- vtx_send_msp_attitude ----------------------------------
 gboolean vtx_send_msp_attitude(gpointer user_data)
 {
-  if (!dc_msp_attitude || !g_msp) return G_SOURCE_REMOVE;
+  if (!dc_msp_attitude) return G_SOURCE_REMOVE;
 
-  // javascript logic
+  // i16 + i16 + i16 = 6 bytes
+  uint8_t response[8];
+  int size = 0;
 
-  // case MSPCodes.MSP_ATTITUDE:
-  //     FC.SENSOR_DATA.kinematics[0] = data.read16() / 10.0; // x
-  //     FC.SENSOR_DATA.kinematics[1] = data.read16() / 10.0; // y
-  //     FC.SENSOR_DATA.kinematics[2] = data.read16(); // z
-  //     break;
+  if (g_msp)
+  {
+    size = msp_request_raw(g_msp, MSP_ATTITUDE, response, sizeof(response));
+  }
+  else
+  {
+    memset(response, 0, 6);
+    size = 6;
+  }
 
-  uint8_t response[32];
-  int size = msp_request_raw(g_msp, MSP_ATTITUDE, response, sizeof(response));
   if (size > 0)
   {
     GBytes *bytes = g_bytes_new(response, size);
@@ -431,16 +396,22 @@ gboolean vtx_send_msp_attitude(gpointer user_data)
 // --- vtx_send_msp_altitude ----------------------------------
 gboolean vtx_send_msp_altitude(gpointer user_data)
 {
-  if (!dc_msp_altitude || !g_msp) return G_SOURCE_REMOVE;
+  if (!dc_msp_altitude) return G_SOURCE_REMOVE;
 
-  // javascript logic
+  // i32 = 4 bytes
+  uint8_t response[8];
+  int size = 0;
 
-  // case MSPCodes.MSP_ALTITUDE:
-  //     FC.SENSOR_DATA.altitude = parseFloat((data.read32() / 100.0).toFixed(2)); // correct scale factor
-  //     break;
+  if (g_msp)
+  {
+    size = msp_request_raw(g_msp, MSP_ALTITUDE, response, sizeof(response));
+  }
+  else
+  {
+    memset(response, 0, 4);
+    size = 4;
+  }
 
-  uint8_t response[32];
-  int size = msp_request_raw(g_msp, MSP_ALTITUDE, response, sizeof(response));
   if (size > 0)
   {
     GBytes *bytes = g_bytes_new(response, size);
@@ -454,21 +425,22 @@ gboolean vtx_send_msp_altitude(gpointer user_data)
 // --- vtx_send_msp_analog ----------------------------------
 gboolean vtx_send_msp_analog(gpointer user_data)
 {
-  if (!dc_msp_analog || !g_msp) return G_SOURCE_REMOVE;
+  if (!dc_msp_analog) return G_SOURCE_REMOVE;
 
-  // javascript logic
+  // u8 + u16 + u16 + i16 + u16 = 9 bytes
+  uint8_t response[16];
+  int size = 0;
 
-  // case MSPCodes.MSP_ANALOG:
-  //     FC.ANALOG.voltage = data.readU8() / 10.0;
-  //     FC.ANALOG.mAhdrawn = data.readU16();
-  //     FC.ANALOG.rssi = data.readU16(); // 0-1023
-  //     FC.ANALOG.amperage = data.read16() / 100; // A
-  //     FC.ANALOG.voltage = data.readU16() / 100;
-  //     FC.ANALOG.last_received_timestamp = performance.now();
-  //     break;
+  if (g_msp)
+  {
+    size = msp_request_raw(g_msp, MSP_ANALOG, response, sizeof(response));
+  }
+  else
+  {
+    memset(response, 0, 9);
+    size = 9;
+  }
 
-  uint8_t response[32];
-  int size = msp_request_raw(g_msp, MSP_ANALOG, response, sizeof(response));
   if (size > 0)
   {
     GBytes *bytes = g_bytes_new(response, size);
@@ -482,16 +454,22 @@ gboolean vtx_send_msp_analog(gpointer user_data)
 // --- vtx_send_msp_sonar ----------------------------------
 gboolean vtx_send_msp_sonar(gpointer user_data)
 {
-  if (!dc_msp_sonar || !g_msp) return G_SOURCE_REMOVE;
+  if (!dc_msp_sonar) return G_SOURCE_REMOVE;
 
-  // javascript logic
+  // i32 = 4 bytes
+  uint8_t response[8];
+  int size = 0;
 
-  // case MSPCodes.MSP_SONAR:
-  //     FC.SENSOR_DATA.sonar = data.read32();
-  //     break;
+  if (g_msp)
+  {
+    size = msp_request_raw(g_msp, MSP_SONAR_ALTITUDE, response, sizeof(response));
+  }
+  else
+  {
+    memset(response, 0, 4);
+    size = 4;
+  }
 
-  uint8_t response[32];
-  int size = msp_request_raw(g_msp, MSP_SONAR_ALTITUDE, response, sizeof(response));
   if (size > 0)
   {
     GBytes *bytes = g_bytes_new(response, size);
@@ -505,23 +483,22 @@ gboolean vtx_send_msp_sonar(gpointer user_data)
 // --- vtx_send_msp_battery_state ----------------------------------
 gboolean vtx_send_msp_battery_state(gpointer user_data)
 {
-  if (!dc_msp_battery_state || !g_msp) return G_SOURCE_REMOVE;
+  if (!dc_msp_battery_state) return G_SOURCE_REMOVE;
 
-  // javascript logic
+  // u8 + u16 + u8 + u16 + u16 + u8 + u16 = 10 bytes
+  uint8_t response[16];
+  int size = 0;
 
-  // case MSPCodes.MSP_BATTERY_STATE:
-  //     FC.BATTERY_STATE.cellCount = data.readU8();
-  //     FC.BATTERY_STATE.capacity = data.readU16(); // mAh
-  //
-  //     FC.BATTERY_STATE.voltage = data.readU8() / 10.0; // V
-  //     FC.BATTERY_STATE.mAhDrawn = data.readU16(); // mAh
-  //     FC.BATTERY_STATE.amperage = data.readU16() / 100; // A
-  //     FC.BATTERY_STATE.batteryState = data.readU8();
-  //     FC.BATTERY_STATE.voltage = data.readU16() / 100;
-  //     break;
+  if (g_msp)
+  {
+    size = msp_request_raw(g_msp, MSP_BATTERY_STATE, response, sizeof(response));
+  }
+  else
+  {
+    memset(response, 0, 10);
+    size = 10;
+  }
 
-  uint8_t response[32];
-  int size = msp_request_raw(g_msp, MSP_BATTERY_STATE, response, sizeof(response));
   if (size > 0)
   {
     GBytes *bytes = g_bytes_new(response, size);

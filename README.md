@@ -50,7 +50,7 @@ GST=$(pkg-config --variable=pluginsdir gstreamer-1.0)
 [ -f "$GST/libgstpulseaudio.so" ] && sudo mv "$GST/libgstpulseaudio.so" "$GST/libgstpulseaudio.so.disabled"
 
 # Use V4L2 instead of libcamera
-[ -f "$GST/libgstlibcamera.so" ] && sudo mv "$GST/libgstlibcamera.so" "$GST/libgstlibcamera.so.disabled"
+# [ -f "$GST/libgstlibcamera.so" ] && sudo mv "$GST/libgstlibcamera.so" "$GST/libgstlibcamera.so.disabled"
 
 # Disable PipeWire
 [ -f "$GST/libgstpipewire.so" ] && sudo mv "$GST/libgstpipewire.so" "$GST/libgstpipewire.so.disabled"
@@ -64,6 +64,9 @@ sudo usermod -aG render $(whoami)
 
 # FC access
 sudo usermod -aG dialout $USER
+
+# WAP access
+sudo usermod -aG netdev $USER
 ```
 
 > **Note:** Log out and back in for group changes to take effect.

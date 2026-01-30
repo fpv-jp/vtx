@@ -14,21 +14,6 @@ static void vtx_dc_on_open(GObject *dc, gpointer user_data)
   {
     g_signal_connect(dc, "on-message-string", G_CALLBACK(vtx_dc_on_message_command), NULL);
   }
-  // IMU channel
-  else if (g_strcmp0(label, CHANNEL_TYPE_IMU) == 0)
-  {
-    timeout_id_imu = g_timeout_add(1000 / 15, vtx_send_dummy_quaternion, dc);
-  }
-  // GNSS channel
-  else if (g_strcmp0(label, CHANNEL_TYPE_GNSS) == 0)
-  {
-    timeout_id_gnss = g_timeout_add_seconds(1, vtx_send_dummy_gnss, NULL);
-  }
-  // BAT channel
-  else if (g_strcmp0(label, CHANNEL_TYPE_BAT) == 0)
-  {
-    timeout_id_bat = g_timeout_add_seconds(2, vtx_send_dummy_battery, NULL);
-  }
 
   // ----------------------------------------
   // Multiwii Serial Protocol (MSP)
@@ -143,21 +128,6 @@ static void vtx_dc_create_cmd_channel(GstElement *webrtc)
   }
 }
 
-// --- vtx_dc_create_mobile_channels ----------------------------------
-static void vtx_dc_create_mobile_channels(GstElement *webrtc)
-{
-  ChannelConfig configs[] = {
-      {CHANNEL_TYPE_IMU, &dc_imu, FALSE, TRUE, 50},   // 低遅延優先
-      {CHANNEL_TYPE_GNSS, &dc_gnss, TRUE, FALSE, 3},  // 信頼性優先
-      {CHANNEL_TYPE_BAT, &dc_bat, TRUE, FALSE, 3}     // 信頼性優先
-  };
-
-  for (size_t i = 0; i < sizeof(configs) / sizeof(configs[0]); i++)
-  {
-    *configs[i].dc_ref = vtx_dc_create_data_channel(webrtc, &configs[i]);
-  }
-}
-
 // --- vtx_dc_create_msp_channels ----------------------------------
 static void vtx_dc_create_msp_channels(GstElement *webrtc)
 {
@@ -199,16 +169,8 @@ void vtx_dc_create_offer(GstElement *webrtc)
   // CMD channel (常に作成)
   vtx_dc_create_cmd_channel(webrtc);
 
-  if (g_msp)
-  {
-    // MSPが利用可能な場合はMSPチャンネルを作成
-    vtx_dc_create_msp_channels(webrtc);
-  }
-  else
-  {
-    // MSPが利用できない場合は非MSPチャンネルを作成
-    vtx_dc_create_mobile_channels(webrtc);
-  }
+  // MSPチャンネルを常に作成（FC未接続時はダミーデータを返す）
+  vtx_dc_create_msp_channels(webrtc);
 
   if (g_wpa_supplicant)
   {

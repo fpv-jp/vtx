@@ -202,7 +202,7 @@ void vtx_soup_on_message(SoupWebsocketConnection *conn, SoupWebsocketDataType ty
           vtx_ws_send(ws_conn, RECEIVER_SYSTEM_ERROR, ws1Id, ws2Id_, error_messeage);
           g_free(ws2Id_);
         }
-        else if (params.flight_controller)
+        else if (params.flight_controller && g_strcmp0(params.flight_controller, "none") != 0)
         {
           // Cleanup existing MSP connection if any
           vtx_msp_cleanup_global();
