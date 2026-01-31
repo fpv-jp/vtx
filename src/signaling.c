@@ -214,11 +214,13 @@ void vtx_soup_on_message(SoupWebsocketConnection *conn, SoupWebsocketDataType ty
             vtx_msp_set_global(msp);
             gst_println("Flight controller opened: %s", params.flight_controller);
 
-            if (!vtx_pipeline_start(&params))
+            gchar *pipeline_error = NULL;
+            if (!vtx_pipeline_start(&params, &pipeline_error))
             {
               JsonObject *error_messeage = json_object_new();
-              json_object_set_string_member(error_messeage, "message", "Failed to start pipeline");
+              json_object_set_string_member(error_messeage, "message", pipeline_error ? pipeline_error : "Failed to start pipeline");
               vtx_ws_send(ws_conn, RECEIVER_SYSTEM_ERROR, ws1Id, ws2Id_, error_messeage);
+              g_free(pipeline_error);
               g_free(ws2Id_);
             }
             else
@@ -238,17 +240,22 @@ void vtx_soup_on_message(SoupWebsocketConnection *conn, SoupWebsocketDataType ty
             g_free(ws2Id_);
           }
         }
-        else if (!vtx_pipeline_start(&params))
-        {
-          JsonObject *error_messeage = json_object_new();
-          json_object_set_string_member(error_messeage, "message", "Failed to start pipeline");
-          vtx_ws_send(ws_conn, RECEIVER_SYSTEM_ERROR, ws1Id, ws2Id_, error_messeage);
-          g_free(ws2Id_);
-        }
         else
         {
-          app_state = STREAM_REQUEST_ACCEPT;
-          g_free(ws2Id_);
+          gchar *pipeline_error = NULL;
+          if (!vtx_pipeline_start(&params, &pipeline_error))
+          {
+            JsonObject *error_messeage = json_object_new();
+            json_object_set_string_member(error_messeage, "message", pipeline_error ? pipeline_error : "Failed to start pipeline");
+            vtx_ws_send(ws_conn, RECEIVER_SYSTEM_ERROR, ws1Id, ws2Id_, error_messeage);
+            g_free(pipeline_error);
+            g_free(ws2Id_);
+          }
+          else
+          {
+            app_state = STREAM_REQUEST_ACCEPT;
+            g_free(ws2Id_);
+          }
         }
       }
       else

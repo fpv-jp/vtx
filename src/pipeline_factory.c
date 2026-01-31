@@ -99,7 +99,7 @@ gboolean vtx_pipeline_parse_media_params(JsonObject *o, MediaParams *p)
 }
 
 // --- vtx_pipeline_build ----------------------------------
-GstElement *vtx_pipeline_build(const MediaParams *p)
+GstElement *vtx_pipeline_build(const MediaParams *p, gchar **error_msg)
 {
   GstElement *pipeline = NULL;
   GstElement *webrtc = NULL;
@@ -154,6 +154,7 @@ GstElement *vtx_pipeline_build(const MediaParams *p)
     if (!agent || !GST_IS_WEBRTC_ICE(agent))
     {
       gst_printerrln("Failed to create valid CustomICEAgent as GstWebRTCICE");
+      if (error_msg) *error_msg = g_strdup("Failed to create custom ICE agent for network interface");
       return NULL;
     }
 
@@ -173,6 +174,7 @@ GstElement *vtx_pipeline_build(const MediaParams *p)
     if (!webrtc)
     {
       gst_printerrln("Failed to create webrtcbin with custom ICE agent");
+      if (error_msg) *error_msg = g_strdup("Failed to create webrtcbin with custom ICE agent");
       return NULL;
     }
 
@@ -194,7 +196,9 @@ GstElement *vtx_pipeline_build(const MediaParams *p)
       if (!video_bin || error)
       {
         gst_printerrln("Video pipeline parse error: %s", error ? error->message : "unknown");
+        if (error_msg) *error_msg = g_strdup_printf("Video pipeline parse error: %s", error ? error->message : "unknown");
         g_clear_error(&error);
+        if (video_bin) gst_object_unref(video_bin);
         gst_object_unref(pipeline);
         return NULL;
       }
@@ -203,6 +207,7 @@ GstElement *vtx_pipeline_build(const MediaParams *p)
       if (!gst_element_link_pads(video_bin, NULL, webrtc, "sink_%u"))
       {
         gst_printerrln("Failed to link video pipeline to webrtcbin");
+        if (error_msg) *error_msg = g_strdup("Failed to link video pipeline to webrtcbin");
         gst_object_unref(pipeline);
         return NULL;
       }
@@ -224,7 +229,9 @@ GstElement *vtx_pipeline_build(const MediaParams *p)
       if (!audio_bin || error)
       {
         gst_printerrln("Audio pipeline parse error: %s", error ? error->message : "unknown");
+        if (error_msg) *error_msg = g_strdup_printf("Audio pipeline parse error: %s", error ? error->message : "unknown");
         g_clear_error(&error);
+        if (audio_bin) gst_object_unref(audio_bin);
         gst_object_unref(pipeline);
         return NULL;
       }
@@ -233,6 +240,7 @@ GstElement *vtx_pipeline_build(const MediaParams *p)
       if (!gst_element_link_pads(audio_bin, NULL, webrtc, "sink_%u"))
       {
         gst_printerrln("Failed to link audio pipeline to webrtcbin");
+        if (error_msg) *error_msg = g_strdup("Failed to link audio pipeline to webrtcbin");
         gst_object_unref(pipeline);
         return NULL;
       }
@@ -271,7 +279,11 @@ GstElement *vtx_pipeline_build(const MediaParams *p)
           p->audio_pipeline);
     }
 
-    if (!desc) return NULL;
+    if (!desc)
+    {
+      if (error_msg) *error_msg = g_strdup("No video or audio pipeline specified");
+      return NULL;
+    }
     gst_println("=== Assembled WebRTC pipeline ===\n");
     gst_println("%s", desc);
     gst_println("\n");
@@ -281,6 +293,7 @@ GstElement *vtx_pipeline_build(const MediaParams *p)
     if (error)
     {
       gst_printerrln("Pipeline parse error: %s", error ? error->message : "unknown");
+      if (error_msg) *error_msg = g_strdup_printf("Pipeline parse error: %s", error ? error->message : "unknown");
       g_clear_error(&error);
       return NULL;
     }

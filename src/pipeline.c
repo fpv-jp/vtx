@@ -9,15 +9,16 @@ GstElement *pipeline = NULL;
 GstElement *webrtc = NULL;
 
 // --- vtx_pipeline_start ----------------------------------
-gboolean vtx_pipeline_start(const MediaParams *params)
+gboolean vtx_pipeline_start(const MediaParams *params, gchar **error_msg)
 {
-  pipeline = vtx_pipeline_build(params);
+  pipeline = vtx_pipeline_build(params, error_msg);
   if (!pipeline) return FALSE;
 
   webrtc = gst_bin_get_by_name(GST_BIN(pipeline), "webrtcbin");
   if (!webrtc)
   {
     gst_printerrln("webrtcbin not found in pipeline");
+    if (error_msg) *error_msg = g_strdup("webrtcbin not found in pipeline");
     return FALSE;
   }
 
@@ -54,5 +55,10 @@ gboolean vtx_pipeline_start(const MediaParams *params)
   g_signal_connect(webrtc, "notify::ice-connection-state", G_CALLBACK(vtx_webrtc_notify_ice_connection_state), NULL);
 
   // set state
-  return gst_element_set_state(pipeline, GST_STATE_PLAYING) != GST_STATE_CHANGE_FAILURE;
+  if (gst_element_set_state(pipeline, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE)
+  {
+    if (error_msg) *error_msg = g_strdup("Failed to set pipeline state to PLAYING");
+    return FALSE;
+  }
+  return TRUE;
 }
