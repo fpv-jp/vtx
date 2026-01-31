@@ -24,6 +24,6 @@ typedef struct
 
 gboolean vtx_pipeline_parse_media_params(JsonObject *root_obj, MediaParams *mediaParams);
 
-GstElement *vtx_pipeline_build(const MediaParams *params);
+GstElement *vtx_pipeline_build(const MediaParams *params, gchar **error_msg);
 
-gboolean vtx_pipeline_start(const MediaParams *params);
+gboolean vtx_pipeline_start(const MediaParams *params, gchar **error_msg);
