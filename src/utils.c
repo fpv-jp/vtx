@@ -395,6 +395,8 @@ gboolean vtx_check_gst_plugins(void)
       g_ptr_array_add(needed, g_strdup("nvv4l2camerasrc")); // USB
       g_ptr_array_add(needed, g_strdup("nveglstreamsrc")); // Overlay
       g_ptr_array_add(needed, g_strdup("openh264"));
+      g_ptr_array_add(needed, g_strdup("x265"));
+      g_ptr_array_add(needed, g_strdup("vpx"));
       g_ptr_array_add(needed, g_strdup("alsa"));
       break;
 

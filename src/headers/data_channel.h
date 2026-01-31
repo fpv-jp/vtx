@@ -38,26 +38,6 @@ void vtx_dc_on_message_command(GObject *dc, gchar *str, gpointer user_data);
 
 // ----------------------------------
 
-#define CHANNEL_TYPE_IMU "IMU"
-#define CHANNEL_TYPE_GNSS "GNSS"
-#define CHANNEL_TYPE_BAT "BAT"
-
-extern GObject *dc_imu;
-extern GObject *dc_gnss;
-extern GObject *dc_bat;
-
-extern guint timeout_id_imu;
-extern guint timeout_id_gnss;
-extern guint timeout_id_bat;
-
-gboolean vtx_send_dummy_quaternion(gpointer user_data);
-
-gboolean vtx_send_dummy_gnss(gpointer user_data);
-
-gboolean vtx_send_dummy_battery(gpointer user_data);
-
-// ----------------------------------
-
 #define CHANNEL_TYPE_MSP_RAW_IMU "MSP_RAW_IMU"
 #define CHANNEL_TYPE_MSP_RAW_GPS "MSP_RAW_GPS"
 #define CHANNEL_TYPE_MSP_COMP_GPS "MSP_COMP_GPS"

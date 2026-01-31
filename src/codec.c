@@ -97,7 +97,10 @@ static void vtx_platform_serviceable_codecs(void)
       // Orin Nano Super is does not support HW encoding. decoding only.
       // Use SW encoding.
       s_platform_serviceable_codecs[0] = "openh264enc";
-      s_platform_serviceable_codecs[1] = "opusenc";
+      s_platform_serviceable_codecs[1] = "x265enc";
+      s_platform_serviceable_codecs[2] = "vp8enc";
+      s_platform_serviceable_codecs[3] = "vp9enc";
+      s_platform_serviceable_codecs[4] = "opusenc";
       break;
 
     case RADXA_ROCK_5B:
