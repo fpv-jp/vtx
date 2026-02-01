@@ -3,7 +3,7 @@
 #include "headers/data_channel.h"
 #include "headers/wpa.h"
 
-// --- vtx_dc_on_open ----------------------------------
+// Handles a DataChannel open event by registering the appropriate periodic telemetry sender for the channel label.
 static void vtx_dc_on_open(GObject *dc, gpointer user_data)
 {
   const char *label = user_data ? (const char *) user_data : "unknown";
@@ -15,15 +15,13 @@ static void vtx_dc_on_open(GObject *dc, gpointer user_data)
     g_signal_connect(dc, "on-message-string", G_CALLBACK(vtx_dc_on_message_command), NULL);
   }
 
-  // ----------------------------------------
   // Multiwii Serial Protocol (MSP)
-  // ----------------------------------------
 
-  // MSP_RAW_IMU channel (高頻度: 50Hz)
-  else if (g_strcmp0(label, CHANNEL_TYPE_MSP_RAW_IMU) == 0)
-  {
-    timeout_id_msp_raw_imu = g_timeout_add(1000 / 50, vtx_send_msp_raw_imu, dc);
-  }
+  // MSP_RAW_IMU channel (high frequency: 50Hz) — 生値のため送信無効
+  // else if (g_strcmp0(label, CHANNEL_TYPE_MSP_RAW_IMU) == 0)
+  // {
+  //   timeout_id_msp_raw_imu = g_timeout_add(1000 / 50, vtx_send_msp_raw_imu, dc);
+  // }
   // MSP_RAW_GPS channel (1Hz)
   else if (g_strcmp0(label, CHANNEL_TYPE_MSP_RAW_GPS) == 0)
   {
@@ -44,11 +42,11 @@ static void vtx_dc_on_open(GObject *dc, gpointer user_data)
   {
     timeout_id_msp_altitude = g_timeout_add(1000 / 10, vtx_send_msp_altitude, dc);
   }
-  // MSP_ANALOG channel (2Hz)
-  else if (g_strcmp0(label, CHANNEL_TYPE_MSP_ANALOG) == 0)
-  {
-    timeout_id_msp_analog = g_timeout_add(1000 / 2, vtx_send_msp_analog, dc);
-  }
+  // MSP_ANALOG channel (2Hz) — MSP_BATTERY_STATE で代替するため送信無効
+  // else if (g_strcmp0(label, CHANNEL_TYPE_MSP_ANALOG) == 0)
+  // {
+  //   timeout_id_msp_analog = g_timeout_add(1000 / 2, vtx_send_msp_analog, dc);
+  // }
   // MSP_SONAR channel (10Hz)
   else if (g_strcmp0(label, CHANNEL_TYPE_MSP_SONAR) == 0)
   {
@@ -60,9 +58,7 @@ static void vtx_dc_on_open(GObject *dc, gpointer user_data)
     timeout_id_msp_battery_state = g_timeout_add(1000 / 2, vtx_send_msp_battery_state, dc);
   }
 
-  // ----------------------------------------
   // Wi-Fi Protected Access (WPA)
-  // ----------------------------------------
 
   // WPA_SUPPLICANT channel (1Hz)
   else if (g_strcmp0(label, CHANNEL_TYPE_WPA_SUPPLICANT) == 0)
@@ -71,21 +67,21 @@ static void vtx_dc_on_open(GObject *dc, gpointer user_data)
   }
 }
 
-// --- vtx_dc_on_error ----------------------------------
+// Logs an error message when a DataChannel encounters an error.
 static void vtx_dc_on_error(GObject *dc, GError *error, gpointer user_data)
 {
   const char *label = user_data ? (const char *) user_data : "unknown";
   gst_printerrln("[DataChannel] Channel %s error: %s", label, error ? error->message : "unknown error");
 }
 
-// --- vtx_dc_on_close ----------------------------------
+// Logs a message when a DataChannel is closed.
 static void vtx_dc_on_close(GObject *dc, gpointer user_data)
 {
   const char *label = user_data ? (const char *) user_data : "unknown";
   gst_println("[DataChannel] Channel %s closed ", label);
 }
 
-// --- vtx_dc_create_data_channel ----------------------------------
+// Creates a WebRTC DataChannel with the given configuration and connects open/error/close signal handlers.
 static GObject *vtx_dc_create_data_channel(GstElement *webrtc, const ChannelConfig *config)
 {
   GstStructure *dc_config;
@@ -113,7 +109,7 @@ static GObject *vtx_dc_create_data_channel(GstElement *webrtc, const ChannelConf
   return dc;
 }
 
-// --- vtx_dc_create_cmd_channel ----------------------------------
+// Creates the ordered CMD DataChannel used for control messages such as hang-up and ping.
 static void vtx_dc_create_cmd_channel(GstElement *webrtc)
 {
   GstStructure *cmd_config = gst_structure_new("application/x-datachannel", "ordered", G_TYPE_BOOLEAN, TRUE, NULL);
@@ -128,18 +124,18 @@ static void vtx_dc_create_cmd_channel(GstElement *webrtc)
   }
 }
 
-// --- vtx_dc_create_msp_channels ----------------------------------
+// Creates all MSP telemetry DataChannels (IMU, GPS, attitude, altitude, analog, sonar, battery) with appropriate reliability settings.
 static void vtx_dc_create_msp_channels(GstElement *webrtc)
 {
   ChannelConfig configs[] = {
-      {CHANNEL_TYPE_MSP_RAW_IMU, &dc_msp_raw_imu, FALSE, TRUE, 50},            // 高頻度、低遅延優先
-      {CHANNEL_TYPE_MSP_RAW_GPS, &dc_msp_raw_gps, TRUE, FALSE, 5},             // 低頻度、信頼性優先
-      {CHANNEL_TYPE_MSP_COMP_GPS, &dc_msp_comp_gps, TRUE, FALSE, 5},           // 低頻度、信頼性優先
-      {CHANNEL_TYPE_MSP_ATTITUDE, &dc_msp_attitude, FALSE, TRUE, 100},         // 中頻度、低遅延優先
-      {CHANNEL_TYPE_MSP_ALTITUDE, &dc_msp_altitude, TRUE, FALSE, 3},           // 中頻度、バランス型
-      {CHANNEL_TYPE_MSP_ANALOG, &dc_msp_analog, TRUE, FALSE, 5},               // 低頻度、信頼性優先
-      {CHANNEL_TYPE_MSP_SONAR, &dc_msp_sonar, TRUE, FALSE, 3},                 // 中頻度、バランス型
-      {CHANNEL_TYPE_MSP_BATTERY_STATE, &dc_msp_battery_state, TRUE, FALSE, 5}  // 低頻度、信頼性優先
+      // {CHANNEL_TYPE_MSP_RAW_IMU, &dc_msp_raw_imu, FALSE, TRUE, 50},         // high frequency, low-latency preferred 生値のため送信から除外 他のチャンネルで計算済みのものを送信
+      {CHANNEL_TYPE_MSP_RAW_GPS, &dc_msp_raw_gps, TRUE, FALSE, 5},             // low frequency, reliability preferred
+      {CHANNEL_TYPE_MSP_COMP_GPS, &dc_msp_comp_gps, TRUE, FALSE, 5},           // low frequency, reliability preferred
+      {CHANNEL_TYPE_MSP_ATTITUDE, &dc_msp_attitude, FALSE, TRUE, 100},         // medium frequency, low-latency preferred
+      {CHANNEL_TYPE_MSP_ALTITUDE, &dc_msp_altitude, TRUE, FALSE, 3},           // medium frequency, balanced
+      // {CHANNEL_TYPE_MSP_ANALOG, &dc_msp_analog, TRUE, FALSE, 5},            // low frequency, reliability preferred MSP_BATTERY_STATE で代替するため送信から除外
+      {CHANNEL_TYPE_MSP_SONAR, &dc_msp_sonar, TRUE, FALSE, 3},                 // medium frequency, balanced
+      {CHANNEL_TYPE_MSP_BATTERY_STATE, &dc_msp_battery_state, TRUE, FALSE, 5}  // low frequency, reliability preferred
   };
 
   for (size_t i = 0; i < sizeof(configs) / sizeof(configs[0]); i++)
@@ -148,11 +144,11 @@ static void vtx_dc_create_msp_channels(GstElement *webrtc)
   }
 }
 
-// --- vtx_dc_create_wpa_channels ----------------------------------
+// Creates the WPA_SUPPLICANT DataChannel for periodic Wi-Fi status reporting.
 static void vtx_dc_create_wpa_channels(GstElement *webrtc)
 {
   ChannelConfig configs[] = {
-      {CHANNEL_TYPE_WPA_SUPPLICANT, &dc_wpa_supplicant, TRUE, FALSE, 5}  // 信頼性優先
+      {CHANNEL_TYPE_WPA_SUPPLICANT, &dc_wpa_supplicant, TRUE, FALSE, 5}  // reliability preferred
   };
 
   for (size_t i = 0; i < sizeof(configs) / sizeof(configs[0]); i++)
@@ -161,33 +157,33 @@ static void vtx_dc_create_wpa_channels(GstElement *webrtc)
   }
 }
 
-// --- vtx_dc_create_offer ----------------------------------
+// Creates all DataChannels (CMD, MSP, and optionally WPA_SUPPLICANT) on the given webrtcbin element.
 void vtx_dc_create_offer(GstElement *webrtc)
 {
   // https://www.w3.org/TR/webrtc/#dom-rtcdatachannelinit
 
-  // CMD channel (常に作成)
+  // CMD channel (always created)
   vtx_dc_create_cmd_channel(webrtc);
 
-  // MSPチャンネルを常に作成（FC未接続時はダミーデータを返す）
+  // MSP channels always created (returns dummy data when FC is not connected)
   vtx_dc_create_msp_channels(webrtc);
 
   if (g_wpa_supplicant)
   {
-    // WPA_SUPPLICANTチャンネル (利用可能な場合は常に作成)
+    // WPA_SUPPLICANT channel (always created when available)
     vtx_dc_create_wpa_channels(webrtc);
   }
 }
 
 // Incoming open data channel (Do not use)
 
-// --- vtx_dc_on_message_string ----------------------------------
+// Logs a string message received on an incoming DataChannel (not currently used in production).
 static void vtx_dc_on_message_string(GObject *dc, gchar *str, gpointer user_data)
 {
   gst_println("Received message: %s", str);
 }
 
-// --- on_data_channel ----------------------------------
+// Handles an incoming DataChannel created by the remote peer and attaches a message handler to it.
 void vtx_webrtc_on_data_channel(GstElement *webrtc, GObject *data_channel, gpointer user_data)
 {
   gchar *label = NULL;

@@ -6,6 +6,7 @@
 
 JsonArray *device_list = NULL;
 
+// Frees all fields of a DeviceEntry and the entry itself.
 static void free_device_entry(gpointer data)
 {
   DeviceEntry *entry = (DeviceEntry *) data;
@@ -25,6 +26,7 @@ static void free_device_entry(gpointer data)
   g_free(entry);
 }
 
+// Removes GStreamer type annotations like "(string)", "(int)", and "(fraction)" from a caps string.
 static char *vtx_trim_caps_types(const char *caps_str)
 {
   if (!caps_str) return NULL;
@@ -53,6 +55,7 @@ static char *vtx_trim_caps_types(const char *caps_str)
   return g_string_free(result, FALSE);
 }
 
+// Returns a newly allocated copy of str with leading and trailing whitespace removed.
 static gchar *trim_string(const gchar *str)
 {
   if (!str) return NULL;
@@ -70,6 +73,7 @@ static gchar *trim_string(const gchar *str)
   return g_strndup(str, end - str + 1);
 }
 
+// Parses one device block from gst-device-monitor output into a DeviceEntry and appends it to devices.
 static gchar *parse_device_entry(FILE *fp, GPtrArray *devices)
 {
   DeviceEntry *entry = g_new0(DeviceEntry, 1);
@@ -164,6 +168,7 @@ static gchar *parse_device_entry(FILE *fp, GPtrArray *devices)
   return next_device_marker_line;
 }
 
+// Converts a GPtrArray of DeviceEntry structs into a JsonArray of device objects with name, class, caps, and properties.
 static JsonArray *devices_to_json(GPtrArray *devices)
 {
   JsonArray *devices_array = json_array_new();
@@ -215,6 +220,7 @@ static JsonArray *devices_to_json(GPtrArray *devices)
   return devices_array;
 }
 
+// Runs gst-device-monitor-1.0 to enumerate video and audio sources and returns them as a JsonArray.
 JsonArray *vtx_device_load_launch_entries()
 {
   FILE *fp = popen("gst-device-monitor-1.0 Video/Source Audio/Source", "r");

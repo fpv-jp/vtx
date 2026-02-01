@@ -7,7 +7,7 @@ GMainLoop *loop = NULL;
 
 AppState app_state = APP_STATE_UNKNOWN;
 
-// --- main ----------------------------------
+// Initializes GStreamer, detects platform and GPU, starts the MSP port scan, connects to the signaling server, and runs the GLib main loop.
 int main(int argc, char *argv[])
 {
   gst_debug_set_default_threshold(GST_LEVEL_FIXME);

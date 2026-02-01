@@ -8,7 +8,7 @@
 GstElement *pipeline = NULL;
 GstElement *webrtc = NULL;
 
-// --- vtx_pipeline_start ----------------------------------
+// Builds and starts the GStreamer pipeline, wires up webrtcbin callbacks, and sets the pipeline to PLAYING state.
 gboolean vtx_pipeline_start(const MediaParams *params, gchar **error_msg)
 {
   pipeline = vtx_pipeline_build(params, error_msg);

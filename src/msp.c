@@ -1,8 +1,8 @@
 #include "headers/msp.h"
 
-// --- 共通処理関数 ----------------------------------
+// --- Common functions ----------------------------------
 
-// MSPコマンドを送信してレスポンスを受信
+// Send an MSP command and receive the response, returning 0 if the response is smaller than expected.
 static int msp_request(MSP *msp, uint16_t cmd, uint8_t *response, size_t response_size, int min_expected_size)
 {
   if (!msp_send_command(msp, cmd, NULL, 0))
@@ -14,10 +14,9 @@ static int msp_request(MSP *msp, uint16_t cmd, uint8_t *response, size_t respons
   return (size >= min_expected_size) ? size : 0;
 }
 
-// --- データパース関数 ----------------------------------
+// --- Data parse functions ----------------------------------
 
-// ボード情報をパース
-// JavaScript: getText(data) - reads length-prefixed string
+// Read a length-prefixed string from the buffer into dest, returning the updated offset.
 static int read_text(const uint8_t *buf, int offset, int max_offset, char *dest, int dest_size)
 {
   if (offset >= max_offset)
@@ -40,6 +39,7 @@ static int read_text(const uint8_t *buf, int offset, int max_offset, char *dest,
   return offset + length;
 }
 
+// Parse an MSP_BOARD_INFO response buffer into an MspBoardInfoData struct.
 static void parse_board_info(const uint8_t *buf, int size, MspBoardInfoData *data)
 {
   int offset = 0;
@@ -97,7 +97,7 @@ static void parse_board_info(const uint8_t *buf, int size, MspBoardInfoData *dat
   }
 }
 
-// ステータスデータをパース
+// Parse an MSP_STATUS response buffer into an MspStatusData struct.
 static void parse_status(const uint8_t *buf, MspStatusData *data)
 {
   data->cycle_time = READ_UINT16(buf, 0);
@@ -107,7 +107,7 @@ static void parse_status(const uint8_t *buf, MspStatusData *data)
   data->current_pid_profile = buf[10];
 }
 
-// 拡張ステータスデータをパース (MSP_STATUS_EX)
+// Parse an MSP_STATUS_EX response buffer into an MspStatusExData struct, handling optional trailing fields.
 static void parse_status_ex(const uint8_t *buf, int size, MspStatusExData *data)
 {
   int offset = 0;
@@ -182,9 +182,9 @@ static void parse_status_ex(const uint8_t *buf, int size, MspStatusExData *data)
   }
 }
 
-// --- 公開API関数 ----------------------------------
+// --- Public API functions ----------------------------------
 
-// ボード情報取得
+// Request board info from the flight controller and populate data, returning 1 on success.
 int vtx_msp_get_board_info(MSP *msp, MspBoardInfoData *data)
 {
   uint8_t response[256];
@@ -200,7 +200,7 @@ int vtx_msp_get_board_info(MSP *msp, MspBoardInfoData *data)
   return 0;
 }
 
-// ステータス情報取得
+// Request status from the flight controller and populate data, returning 1 on success.
 int vtx_msp_get_status(MSP *msp, MspStatusData *data)
 {
   uint8_t response[64];
@@ -214,7 +214,7 @@ int vtx_msp_get_status(MSP *msp, MspStatusData *data)
   return 0;
 }
 
-// 拡張ステータス情報取得 (MSP_STATUS_EX)
+// Request extended status from the flight controller and populate data, returning 1 on success.
 int vtx_msp_get_status_ex(MSP *msp, MspStatusExData *data)
 {
   uint8_t response[128];

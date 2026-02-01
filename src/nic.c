@@ -18,7 +18,7 @@
 #include "headers/nic.h"
 #include "headers/wpa.h"
 
-// --- should_skip_interface ----------------------------------
+// Returns TRUE if the network interface should be skipped (loopback, virtual, or container interfaces).
 static gboolean vtx_nic_should_skip_interface(const gchar *ifname)
 {
   if (!ifname || ifname[0] == '\0') return TRUE;
@@ -52,7 +52,6 @@ static gboolean vtx_nic_should_skip_interface(const gchar *ifname)
 }
 
 // Check if an interface is a WiFi interface
-// --- is_wifi_interface ----------------------------------
 static gboolean vtx_nic_is_wifi_interface(const gchar *ifname)
 {
   // Check for WiFi Direct interfaces
@@ -140,7 +139,7 @@ typedef struct
   JsonObject *signal;
 } WifiInfo;
 
-// --- vtx_nic_run_wpa_cli_command ----------------------------------
+// Runs a wpa_cli command on the given interface and returns its output as a newly allocated string.
 static gchar *vtx_nic_run_wpa_cli_command(const gchar *interface, const gchar *command)
 {
   if (!interface || !command) return NULL;
@@ -197,7 +196,7 @@ static WifiInfo *vtx_nic_get_wpa_info(const gchar *interface)
 }
 
 // --- Ethernet helper structures and functions ----------------------------------
-// --- vtx_nic_get_ethtool_info ----------------------------------
+// Runs ethtool on the given interface and returns its parsed key-value output as a JsonArray.
 static JsonArray *vtx_nic_get_ethtool_info(const gchar *interface)
 {
   gchar *cmd = g_strdup_printf("ethtool %s 2>/dev/null", interface);
@@ -218,7 +217,7 @@ typedef struct
   GPtrArray *unnamed_interfaces;
 } IwDevInfo;
 
-// --- vtx_nic_free_wifi_info ----------------------------------
+// Frees an IwDevInfo structure and all its contained hash table and array members.
 static void vtx_nic_free_wifi_info(IwDevInfo *info)
 {
   if (!info) return;
@@ -229,7 +228,7 @@ static void vtx_nic_free_wifi_info(IwDevInfo *info)
   g_free(info);
 }
 
-// --- vtx_nic_get_wifi_info ----------------------------------
+// Runs "iw dev" and parses its output into an IwDevInfo with named and unnamed wireless interfaces.
 static IwDevInfo *vtx_nic_get_wifi_info(void)
 {
   FILE *fp = popen("iw dev 2>/dev/null", "r");
@@ -305,7 +304,7 @@ static IwDevInfo *vtx_nic_get_wifi_info(void)
   return info;
 }
 
-// --- vtx_nic_get_ipv4_address ----------------------------------
+// Searches the ifaddrs list for the IPv4 address of the named interface and writes it into host.
 static gboolean vtx_nic_get_ipv4_address(struct ifaddrs *ifaddr, const gchar *ifname, char *host, gsize host_len)
 {
   if (!ifaddr || !ifname || !host) return FALSE;
@@ -325,7 +324,7 @@ static gboolean vtx_nic_get_ipv4_address(struct ifaddrs *ifaddr, const gchar *if
   return FALSE;
 }
 
-// --- vtx_nic_append_remaining_wifi_info ----------------------------------
+// Appends any iw-reported interfaces not yet in the seen set (including unnamed ones) to the interfaces array.
 static void vtx_nic_append_remaining_wifi_info(JsonArray *interfaces, GHashTable *seen, IwDevInfo *info)
 {
   if (!interfaces || !info) return;
@@ -360,7 +359,7 @@ static void vtx_nic_append_remaining_wifi_info(JsonArray *interfaces, GHashTable
   }
 }
 
-// --- vtx_nic_process_interface ----------------------------------
+// Builds a JsonObject for a single network interface, attaching IP address, flags, and WiFi or Ethernet details.
 static JsonObject *vtx_nic_process_interface(struct ifaddrs *ifaddr, struct ifaddrs *ifa, IwDevInfo *iw_info)
 {
   JsonObject *iface = vtx_nic_parse_interface_new(ifa->ifa_name);
@@ -417,7 +416,7 @@ static JsonObject *vtx_nic_process_interface(struct ifaddrs *ifaddr, struct ifad
   return iface;
 }
 
-// --- vtx_nic_inspection ----------------------------------
+// Enumerates all non-virtual network interfaces and returns a JsonArray of their details (WiFi first, then Ethernet).
 JsonArray *vtx_nic_inspection(void)
 {
   struct ifaddrs *ifaddr, *ifa;

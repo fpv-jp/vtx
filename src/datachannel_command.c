@@ -4,7 +4,7 @@
 // Global CMD data channel reference
 GObject *dc_cmd = NULL;
 
-// --- vtx_dc_on_message_command ----------------------------------
+// Parses a JSON command message received on the CMD DataChannel and dispatches the appropriate action (hang-up, pong, or error handling).
 void vtx_dc_on_message_command(GObject *dc, gchar *str, gpointer user_data)
 {
   JsonParser *parser = json_parser_new();

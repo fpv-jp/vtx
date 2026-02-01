@@ -27,7 +27,7 @@ const gchar *rtp_audio_header_extensions[] = {
     //
 };
 
-// --- vtx_rtp_add_header_extensions_with_list ----------------------------------
+// Adds a list of RTP header extensions identified by URI to the given payloader element, assigning sequential IDs.
 static void vtx_rtp_add_header_extensions_with_list(GstElement *payloader, const gchar **uris, guint count)
 {
   guint id = 1;
@@ -46,19 +46,21 @@ static void vtx_rtp_add_header_extensions_with_list(GstElement *payloader, const
   }
 }
 
+// Attaches the standard set of WebRTC video RTP header extensions to the given video payloader element.
 void vtx_rtp_add_video_header_extensions(GstElement *videopay)
 {
   vtx_rtp_add_header_extensions_with_list(videopay, rtp_video_header_extensions, G_N_ELEMENTS(rtp_video_header_extensions));
   g_clear_object(&videopay);
 }
 
+// Attaches the standard set of WebRTC audio RTP header extensions to the given audio payloader element.
 void vtx_rtp_add_audio_header_extensions(GstElement *audiopay)
 {
   vtx_rtp_add_header_extensions_with_list(audiopay, rtp_audio_header_extensions, G_N_ELEMENTS(rtp_audio_header_extensions));
   g_clear_object(&audiopay);
 }
 
-// --- vtx_rtp_priority_from_string ----------------------------------
+// Converts a priority name or nick string to its corresponding GstWebRTCPriorityType enum value.
 static GstWebRTCPriorityType vtx_rtp_priority_from_string(const gchar *s)
 {
   GEnumClass *klass = (GEnumClass *) g_type_class_ref(GST_TYPE_WEBRTC_PRIORITY_TYPE);
@@ -74,6 +76,7 @@ static GstWebRTCPriorityType vtx_rtp_priority_from_string(const gchar *s)
   return 0;
 }
 
+// Sets sendonly direction and optional DSCP priority on the first two WebRTC transceivers for video and audio.
 void vtx_rtp_set_transceiver_priority(GArray *transceivers, const gchar *video_priority, const gchar *audio_priority)
 {
   GstWebRTCRTPTransceiver *trans = g_array_index(transceivers, GstWebRTCRTPTransceiver *, 0);
