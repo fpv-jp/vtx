@@ -123,6 +123,29 @@ void vtx_soup_on_message(SoupWebsocketConnection *conn, SoupWebsocketDataType ty
         ws1Id = g_strdup(json_object_get_string_member(object, "sessionId"));
         gst_println("assigned TX session ID : %s", ws1Id);
         app_state = SERVER_REGISTERED;
+
+        // Send platform info to server
+        JsonObject *platform_info = json_object_new();
+        json_object_set_int_member(platform_info, "type", SENDER_PLATFORM_INFO);
+        json_object_set_string_member(platform_info, "platform", vtx_platform_to_string(g_platform));
+        if (g_platform == LINUX_X86 && g_gpu_vendor != GPU_VENDOR_UNKNOWN)
+        {
+          json_object_set_string_member(platform_info, "gpu", vtx_gpu_vendor_to_string(g_gpu_vendor));
+        }
+
+        JsonNode *root = json_node_new(JSON_NODE_OBJECT);
+        json_node_set_object(root, platform_info);
+        JsonGenerator *gen = json_generator_new();
+        json_generator_set_root(gen, root);
+        gchar *json_str = json_generator_to_data(gen, NULL);
+
+        gst_println("<<< %d SENDER_PLATFORM_INFO: %s", SENDER_PLATFORM_INFO, json_str);
+        soup_websocket_connection_send_text(conn, json_str);
+
+        g_free(json_str);
+        g_object_unref(gen);
+        json_node_free(root);
+        json_object_unref(platform_info);
       }
       else
       {
