@@ -20,7 +20,7 @@ typedef struct
   int serial_fd;
 } MSP;
 
-// --- データ構造体 ----------------------------------
+// --- Data structures ----------------------------------
 
 typedef struct
 {
@@ -64,21 +64,19 @@ typedef struct
   uint8_t number_of_rate_profiles;
 } MspStatusExData;
 
-// --- ヘルパーマクロ ----------------------------------
+// --- Helper macros ----------------------------------
 
-// リトルエンディアンで16ビット値を読み取る
+// Read a signed 16-bit little-endian value from buf at offset
 #define READ_INT16(buf, offset) ((int16_t) ((buf)[offset] | ((buf)[(offset) + 1] << 8)))
 
-// リトルエンディアンで16ビット符号なし値を読み取る
+// Read an unsigned 16-bit little-endian value from buf at offset
 #define READ_UINT16(buf, offset) ((uint16_t) ((buf)[offset] | ((buf)[(offset) + 1] << 8)))
 
-// リトルエンディアンで32ビット値を読み取る
+// Read a signed 32-bit little-endian value from buf at offset
 #define READ_INT32(buf, offset) ((int32_t) ((buf)[offset] | ((buf)[(offset) + 1] << 8) | ((buf)[(offset) + 2] << 16) | ((buf)[(offset) + 3] << 24)))
 
-// リトルエンディアンで32ビット符号なし値を読み取る
+// Read an unsigned 32-bit little-endian value from buf at offset
 #define READ_UINT32(buf, offset) ((uint32_t) ((buf)[offset] | ((buf)[(offset) + 1] << 8) | ((buf)[(offset) + 2] << 16) | ((buf)[(offset) + 3] << 24)))
-
-// ---------------------
 
 const char *vtx_msp_detect();
 
@@ -95,8 +93,6 @@ int msp_send_command(MSP *msp, uint8_t cmd, const uint8_t *data, uint8_t data_si
 int msp_receive_response(MSP *msp, uint8_t *response, int max_size, int timeout_ms);
 
 int msp_request_raw(MSP *msp, uint16_t cmd, uint8_t *response, size_t response_size);
-
-// ---------------------
 
 int vtx_msp_get_board_info(MSP *msp, MspBoardInfoData *data);
 

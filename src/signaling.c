@@ -15,7 +15,7 @@ SoupWebsocketConnection *ws_conn = NULL;
 gchar *ws1Id = NULL;
 gchar *ws2Id = NULL;
 
-// --- vtx_sdp_media_is_rejected ----------------------------------
+// Returns TRUE if the given SDP media section has been rejected by the peer (port 0 or inactive attribute).
 static gboolean vtx_sdp_media_is_rejected(const GstSDPMedia *media)
 {
   if (!media) return FALSE;
@@ -26,7 +26,7 @@ static gboolean vtx_sdp_media_is_rejected(const GstSDPMedia *media)
   return inactive != NULL;
 }
 
-// --- vtx_sdp_handle_rejected_media ----------------------------------
+// Inspects the SDP answer for rejected video/audio tracks, sends an error to the receiver, and tears down the connection if any track was rejected.
 static gboolean vtx_sdp_handle_rejected_media(const GstSDPMessage *sdp)
 {
   if (!sdp) return FALSE;
@@ -83,7 +83,7 @@ static gboolean vtx_sdp_handle_rejected_media(const GstSDPMessage *sdp)
   return TRUE;
 }
 
-// --- vtx_soup_on_message ----------------------------------
+// Handles incoming WebSocket messages from the signaling server and dispatches actions based on the message type field.
 void vtx_soup_on_message(SoupWebsocketConnection *conn, SoupWebsocketDataType type, GBytes *message, gpointer user_data)
 {
   gsize size;
@@ -122,7 +122,37 @@ void vtx_soup_on_message(SoupWebsocketConnection *conn, SoupWebsocketDataType ty
       {
         ws1Id = g_strdup(json_object_get_string_member(object, "sessionId"));
         gst_println("assigned TX session ID : %s", ws1Id);
+
+        if (json_object_has_member(object, "pin"))
+        {
+          const gchar *pin = json_object_get_string_member(object, "pin");
+          gst_println("\n=== Access PIN: %s ===\n", pin);
+        }
+
         app_state = SERVER_REGISTERED;
+
+        // Send platform info to server
+        JsonObject *platform_info = json_object_new();
+        json_object_set_int_member(platform_info, "type", SENDER_PLATFORM_INFO);
+        json_object_set_string_member(platform_info, "platform", vtx_platform_to_string(g_platform));
+        if (g_platform == LINUX_X86 && g_gpu_vendor != GPU_VENDOR_UNKNOWN)
+        {
+          json_object_set_string_member(platform_info, "gpu", vtx_gpu_vendor_to_string(g_gpu_vendor));
+        }
+
+        JsonNode *root = json_node_new(JSON_NODE_OBJECT);
+        json_node_set_object(root, platform_info);
+        JsonGenerator *gen = json_generator_new();
+        json_generator_set_root(gen, root);
+        gchar *json_str = json_generator_to_data(gen, NULL);
+
+        gst_println("<<< %d SENDER_PLATFORM_INFO: %s", SENDER_PLATFORM_INFO, json_str);
+        soup_websocket_connection_send_text(conn, json_str);
+
+        g_free(json_str);
+        g_object_unref(gen);
+        json_node_free(root);
+        json_object_unref(platform_info);
       }
       else
       {
@@ -331,7 +361,7 @@ void vtx_soup_on_message(SoupWebsocketConnection *conn, SoupWebsocketDataType ty
   g_free(text);
 }
 
-// --- vtx_soup_on_closed ----------------------------------
+// Called when the WebSocket connection to the signaling server is closed; cleans up and quits the main loop.
 static void vtx_soup_on_closed(SoupWebsocketConnection *conn, gpointer user_data)
 {
   gst_println("Disconnected signaling server.");
@@ -339,7 +369,7 @@ static void vtx_soup_on_closed(SoupWebsocketConnection *conn, gpointer user_data
   app_state = SERVER_CLOSED;
 }
 
-// --- vtx_soup_on_connected ----------------------------------
+// Async callback invoked when the WebSocket handshake completes; stores the connection and registers message/closed signal handlers.
 static void vtx_soup_on_connected(GObject *source_object, GAsyncResult *res, gpointer user_data)
 {
   SoupSession *session = SOUP_SESSION(source_object);
@@ -359,21 +389,21 @@ static void vtx_soup_on_connected(GObject *source_object, GAsyncResult *res, gpo
   g_signal_connect(ws_conn, "message", G_CALLBACK(vtx_soup_on_message), NULL);
 }
 
-// --- get_signaling_endpoint ----------------------------------
+// Returns the signaling server URL from the SIGNALING_ENDPOINT environment variable, or the compiled-in default.
 const char *get_signaling_endpoint(void)
 {
   const char *endpoint = getenv("SIGNALING_ENDPOINT");
   return endpoint ? endpoint : DEFAULT_SIGNALING_ENDPOINT;
 }
 
-// --- get_certificate_authority ----------------------------------
+// Returns the TLS CA certificate path from the SERVER_CERTIFICATE_AUTHORITY environment variable, or the compiled-in default.
 const char *get_certificate_authority(void)
 {
   const char *certificate = getenv("SERVER_CERTIFICATE_AUTHORITY");
   return certificate ? certificate : DEFAULT_SERVER_CERTIFICATE_AUTHORITY;
 }
 
-// --- vtx_soup_session_websocket_connect_async ----------------------------------
+// Creates a libsoup session (with optional custom CA certificate) and initiates an async WebSocket connection to the signaling server.
 void vtx_soup_session_websocket_connect_async(void)
 {
   gst_println("----- Connect signaling -----");

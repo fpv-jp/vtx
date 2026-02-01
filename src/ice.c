@@ -13,6 +13,7 @@ struct _CustomICEAgent
 G_DEFINE_TYPE(CustomICEAgent, customice_agent, GST_TYPE_WEBRTC_ICE)
 /* *INDENT-ON* */
 
+// Delegates stream creation for a given session ID to the internal GstWebRTCNice agent.
 GstWebRTCICEStream *customice_agent_add_stream(GstWebRTCICE *ice, guint session_id)
 {
   CustomICEAgent *agent = CUSTOMICE_AGENT(ice);
@@ -25,6 +26,7 @@ GstWebRTCICEStream *customice_agent_add_stream(GstWebRTCICE *ice, guint session_
   return gst_webrtc_ice_add_stream(c_ice, session_id);
 }
 
+// Delegates ICE transport lookup for a given stream and component to the internal GstWebRTCNice agent.
 GstWebRTCICETransport *customice_agent_find_transport(GstWebRTCICE *ice, GstWebRTCICEStream *stream, GstWebRTCICEComponent component)
 {
   CustomICEAgent *agent = CUSTOMICE_AGENT(ice);
@@ -44,6 +46,7 @@ GstWebRTCICETransport *customice_agent_find_transport(GstWebRTCICE *ice, GstWebR
  */
 #if (GST_VERSION_MINOR < 23)
 /* Embedded platforms: 3-parameter API (no promise) */
+// Forwards a remote ICE candidate to the internal GstWebRTCNice agent (3-parameter API for older GStreamer).
 void customice_agent_add_candidate(GstWebRTCICE *ice, GstWebRTCICEStream *stream, const gchar *candidate)
 {
   GstWebRTCICE *c_ice = GST_WEBRTC_ICE(CUSTOMICE_AGENT(ice)->nice_agent);
@@ -51,6 +54,7 @@ void customice_agent_add_candidate(GstWebRTCICE *ice, GstWebRTCICEStream *stream
 }
 #else
 /* Desktop platforms: 4-parameter API (with promise) */
+// Forwards a remote ICE candidate to the internal GstWebRTCNice agent (4-parameter API for newer GStreamer).
 void customice_agent_add_candidate(GstWebRTCICE *ice, GstWebRTCICEStream *stream, const gchar *candidate, GstPromise *promise)
 {
   GstWebRTCICE *c_ice = GST_WEBRTC_ICE(CUSTOMICE_AGENT(ice)->nice_agent);
@@ -58,84 +62,98 @@ void customice_agent_add_candidate(GstWebRTCICE *ice, GstWebRTCICEStream *stream
 }
 #endif
 
+// Sets the remote ICE credentials (ufrag and password) on the underlying nice agent for the given stream.
 gboolean customice_agent_set_remote_credentials(GstWebRTCICE *ice, GstWebRTCICEStream *stream, const gchar *ufrag, const gchar *pwd)
 {
   GstWebRTCICE *c_ice = GST_WEBRTC_ICE(CUSTOMICE_AGENT(ice)->nice_agent);
   return gst_webrtc_ice_set_remote_credentials(c_ice, stream, ufrag, pwd);
 }
 
+// Adds a TURN server URI to the underlying nice agent.
 gboolean customice_agent_add_turn_server(GstWebRTCICE *ice, const gchar *uri)
 {
   GstWebRTCICE *c_ice = GST_WEBRTC_ICE(CUSTOMICE_AGENT(ice)->nice_agent);
   return gst_webrtc_ice_add_turn_server(c_ice, uri);
 }
 
+// Sets the local ICE credentials (ufrag and password) on the underlying nice agent for the given stream.
 gboolean customice_agent_set_local_credentials(GstWebRTCICE *ice, GstWebRTCICEStream *stream, const gchar *ufrag, const gchar *pwd)
 {
   GstWebRTCICE *c_ice = GST_WEBRTC_ICE(CUSTOMICE_AGENT(ice)->nice_agent);
   return gst_webrtc_ice_set_local_credentials(c_ice, stream, ufrag, pwd);
 }
 
+// Triggers ICE candidate gathering on the underlying nice agent for the given stream.
 gboolean customice_agent_gather_candidates(GstWebRTCICE *ice, GstWebRTCICEStream *stream)
 {
   GstWebRTCICE *c_ice = GST_WEBRTC_ICE(CUSTOMICE_AGENT(ice)->nice_agent);
   return gst_webrtc_ice_gather_candidates(c_ice, stream);
 }
 
+// Sets whether this ICE agent acts as the controlling peer in the negotiation.
 void customice_agent_set_is_controller(GstWebRTCICE *ice, gboolean controller)
 {
   GstWebRTCICE *c_ice = GST_WEBRTC_ICE(CUSTOMICE_AGENT(ice)->nice_agent);
   gst_webrtc_ice_set_is_controller(c_ice, controller);
 }
 
+// Returns whether this ICE agent is currently configured as the controlling peer.
 gboolean customice_agent_get_is_controller(GstWebRTCICE *ice)
 {
   GstWebRTCICE *c_ice = GST_WEBRTC_ICE(CUSTOMICE_AGENT(ice)->nice_agent);
   return gst_webrtc_ice_get_is_controller(c_ice);
 }
 
+// Configures the underlying nice agent to force all traffic through a TURN relay when enabled.
 void customice_agent_set_force_relay(GstWebRTCICE *ice, gboolean force_relay)
 {
   GstWebRTCICE *c_ice = GST_WEBRTC_ICE(CUSTOMICE_AGENT(ice)->nice_agent);
   gst_webrtc_ice_set_force_relay(c_ice, force_relay);
 }
 
+// Sets the DSCP/TOS value for ICE traffic on the given stream via the underlying nice agent.
 void customice_agent_set_tos(GstWebRTCICE *ice, GstWebRTCICEStream *stream, guint tos)
 {
   GstWebRTCICE *c_ice = GST_WEBRTC_ICE(CUSTOMICE_AGENT(ice)->nice_agent);
   gst_webrtc_ice_set_tos(c_ice, stream, tos);
 }
 
+// Registers a callback on the underlying nice agent to be invoked when a new local ICE candidate is discovered.
 void customice_agent_set_on_ice_candidate(GstWebRTCICE *ice, GstWebRTCICEOnCandidateFunc func, gpointer user_data, GDestroyNotify notify)
 {
   GstWebRTCICE *c_ice = GST_WEBRTC_ICE(CUSTOMICE_AGENT(ice)->nice_agent);
   gst_webrtc_ice_set_on_ice_candidate(c_ice, func, user_data, notify);
 }
 
+// Sets the STUN server URI on the underlying nice agent.
 void customice_agent_set_stun_server(GstWebRTCICE *ice, const gchar *uri_s)
 {
   GstWebRTCICE *c_ice = GST_WEBRTC_ICE(CUSTOMICE_AGENT(ice)->nice_agent);
   gst_webrtc_ice_set_stun_server(c_ice, uri_s);
 }
 
+// Returns the STUN server URI currently configured on the underlying nice agent.
 gchar *customice_agent_get_stun_server(GstWebRTCICE *ice)
 {
   GstWebRTCICE *c_ice = GST_WEBRTC_ICE(CUSTOMICE_AGENT(ice)->nice_agent);
   return gst_webrtc_ice_get_stun_server(c_ice);
 }
 
+// Sets the TURN server URI on the underlying nice agent.
 void customice_agent_set_turn_server(GstWebRTCICE *ice, const gchar *uri_s)
 {
   GstWebRTCICE *c_ice = GST_WEBRTC_ICE(CUSTOMICE_AGENT(ice)->nice_agent);
   gst_webrtc_ice_set_turn_server(c_ice, uri_s);
 }
 
+// Returns the TURN server URI currently configured on the underlying nice agent.
 gchar *customice_agent_get_turn_server(GstWebRTCICE *ice)
 {
   GstWebRTCICE *c_ice = GST_WEBRTC_ICE(CUSTOMICE_AGENT(ice)->nice_agent);
   return gst_webrtc_ice_get_turn_server(c_ice);
 }
 
+// Releases the network_interface string and the internal nice agent reference when the object is destroyed.
 static void customice_agent_finalize(GObject *object)
 {
   CustomICEAgent *ice = CUSTOMICE_AGENT(object);
@@ -148,6 +166,7 @@ static void customice_agent_finalize(GObject *object)
   G_OBJECT_CLASS(customice_agent_parent_class)->finalize(object);
 }
 
+// Registers the GObject finalizer and overrides all GstWebRTCICE virtual function pointers with custom implementations.
 static void customice_agent_class_init(CustomICEAgentClass *klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
@@ -178,6 +197,7 @@ static void customice_agent_class_init(CustomICEAgentClass *klass)
   gst_webrtc_ice_class->set_on_ice_candidate = customice_agent_set_on_ice_candidate;
 }
 
+// Initializes a new CustomICEAgent instance by creating and sinking the internal GstWebRTCNice agent.
 static void customice_agent_init(CustomICEAgent *ice)
 {
   ice->nice_agent = gst_webrtc_nice_new("nice_agent");
@@ -199,6 +219,7 @@ static void customice_agent_init(CustomICEAgent *ice)
   }
 }
 
+// Allocates a new CustomICEAgent and, if a network interface is specified, restricts the internal nice agent to that interface and IP.
 CustomICEAgent *customice_agent_new(const gchar *name, const gchar *network_interface)
 {
   CustomICEAgent *agent = g_object_new(CUSTOMICE_TYPE_AGENT, "name", name, NULL);

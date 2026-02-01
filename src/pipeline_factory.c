@@ -3,7 +3,7 @@
 
 #include "headers/pipeline.h"
 
-// --- vtx_pipeline_print_pretty ----------------------------------
+// Prints a GStreamer pipeline description with newlines inserted after each element delimiter for readability.
 static void vtx_pipeline_print_pretty(const char *desc)
 {
   const char *p = desc;
@@ -21,9 +21,7 @@ static void vtx_pipeline_print_pretty(const char *desc)
   }
 }
 
-// --- vtx_pipeline_sanitize_description ----------------------------------
-// Removes trailing caps specifications that can cause parse errors
-// when using gst_parse_bin_from_description with ghost_unlinked_pads=TRUE
+// Removes a trailing standalone caps specification from a pipeline description string to prevent parse errors.
 static gchar *vtx_pipeline_sanitize_description(const gchar *desc)
 {
   if (!desc) return NULL;
@@ -67,7 +65,7 @@ static gchar *vtx_pipeline_sanitize_description(const gchar *desc)
   return sanitized;
 }
 
-// --- vtx_pipeline_parse_media_params ----------------------------------
+// Parses a JSON object from the signaling message into a MediaParams struct and logs the result.
 gboolean vtx_pipeline_parse_media_params(JsonObject *o, MediaParams *p)
 {
   p->video_pipeline = json_object_get_string_member(o, "video_pipeline");
@@ -98,7 +96,7 @@ gboolean vtx_pipeline_parse_media_params(JsonObject *o, MediaParams *p)
   return TRUE;
 }
 
-// --- vtx_pipeline_build ----------------------------------
+// Constructs and returns a GStreamer pipeline with webrtcbin, using a custom ICE agent when a network interface is specified.
 GstElement *vtx_pipeline_build(const MediaParams *p, gchar **error_msg)
 {
   GstElement *pipeline = NULL;

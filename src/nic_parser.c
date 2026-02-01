@@ -9,7 +9,7 @@ typedef struct
   gboolean has_data;
 } JsonKeyValueContext;
 
-// --- vtx_nic_parse_wpa_foreach_key_value ----------------------------------
+// Iterates over each "key=value" line in a wpa_cli response string and invokes the callback for each pair.
 void vtx_nic_parse_wpa_foreach_key_value(const char *response, VtxWpaKeyValueFunc callback, gpointer user_data)
 {
   if (!response || response[0] == '\0' || !callback) return;
@@ -43,7 +43,7 @@ void vtx_nic_parse_wpa_foreach_key_value(const char *response, VtxWpaKeyValueFun
   g_free(copy);
 }
 
-// --- vtx_nic_parse_json_object_add_entry ----------------------------------
+// Callback that inserts a key-value pair as a string member into a JsonObject held in the context.
 static void vtx_nic_parse_json_object_add_entry(const char *key, const char *value, gpointer user_data)
 {
   JsonKeyValueContext *ctx = (JsonKeyValueContext *) user_data;
@@ -53,7 +53,7 @@ static void vtx_nic_parse_json_object_add_entry(const char *key, const char *val
   ctx->has_data = TRUE;
 }
 
-// --- vtx_nic_parse_wpa_for_cli ----------------------------------
+// Parses a wpa_cli key=value response into a JsonObject, returning NULL if no data is found.
 JsonObject *vtx_nic_parse_wpa_for_cli(const gchar *output)
 {
   if (!output || *output == '\0') return NULL;
@@ -70,7 +70,7 @@ JsonObject *vtx_nic_parse_wpa_for_cli(const gchar *output)
   return ctx.object;
 }
 
-// --- vtx_nic_parse_json_add_entry ----------------------------------
+// Callback that adds a key-value string pair into a JsonBuilder object currently being constructed.
 static void vtx_nic_parse_json_add_entry(const char *key, const char *value, gpointer user_data)
 {
   JsonBuilder *builder = (JsonBuilder *) user_data;
@@ -80,7 +80,7 @@ static void vtx_nic_parse_json_add_entry(const char *key, const char *value, gpo
   json_builder_add_string_value(builder, value ? value : "");
 }
 
-// --- vtx_nic_parse_wpa_for_datachannel ----------------------------------
+// Parses a wpa_cli response and writes each key-value pair into the given JsonBuilder for DataChannel use.
 void vtx_nic_parse_wpa_for_datachannel(JsonBuilder *builder, const char *response)
 {
   if (!builder || !response || response[0] == '\0') return;
@@ -88,7 +88,7 @@ void vtx_nic_parse_wpa_for_datachannel(JsonBuilder *builder, const char *respons
   vtx_nic_parse_wpa_foreach_key_value(response, vtx_nic_parse_json_add_entry, builder);
 }
 
-// --- vtx_nic_parse_wifi_info ----------------------------------
+// Splits a single "key value" line from iw output and invokes the callback with the key and trailing value.
 void vtx_nic_parse_wifi_info(char *line, VtxKeyValueFunc callback, gpointer user_data)
 {
   if (!line || !*line || !callback) return;
@@ -107,7 +107,7 @@ void vtx_nic_parse_wifi_info(char *line, VtxKeyValueFunc callback, gpointer user
   *key_end = saved;
 }
 
-// --- vtx_nic_parse_iw_iface_add_attribute ----------------------------------
+// Callback that sets a string attribute on a JsonObject representing an iw interface entry.
 void vtx_nic_parse_iw_iface_add_attribute(const char *key, const char *value, gpointer user_data)
 {
   JsonObject *iface = (JsonObject *) user_data;
@@ -115,7 +115,7 @@ void vtx_nic_parse_iw_iface_add_attribute(const char *key, const char *value, gp
   json_object_set_string_member(iface, key, value ? value : "");
 }
 
-// --- vtx_nic_parse_wifi_info_txq_block ----------------------------------
+// Reads the multicast TXQ header and values lines from iw output and stores them as a nested JsonObject on iface.
 void vtx_nic_parse_wifi_info_txq_block(FILE *fp, JsonObject *iface)
 {
   if (!fp || !iface) return;
@@ -157,7 +157,7 @@ void vtx_nic_parse_wifi_info_txq_block(FILE *fp, JsonObject *iface)
   g_strfreev(data);
 }
 
-// --- vtx_nic_parse_ethtool_info ----------------------------------
+// Reads ethtool output from fp and returns a JsonArray of {key, value} objects for each colon-separated line.
 JsonArray *vtx_nic_parse_ethtool_info(FILE *fp)
 {
   if (!fp) return NULL;
@@ -194,6 +194,7 @@ JsonArray *vtx_nic_parse_ethtool_info(FILE *fp)
   return entries;
 }
 
+// Allocates and returns a new JsonObject representing a network interface with the given name.
 JsonObject *vtx_nic_parse_interface_new(const gchar *name)
 {
   JsonObject *iface = json_object_new();
@@ -201,12 +202,14 @@ JsonObject *vtx_nic_parse_interface_new(const gchar *name)
   return iface;
 }
 
+// Sets the "address" string field on the given interface JsonObject.
 void vtx_nic_parse_interface_set_address(JsonObject *iface, const gchar *address)
 {
   if (!iface || !address || *address == '\0') return;
   json_object_set_string_member(iface, "address", address);
 }
 
+// Sets the "up" and "running" boolean flags on the given interface JsonObject.
 void vtx_nic_parse_interface_set_flags(JsonObject *iface, gboolean up, gboolean running)
 {
   if (!iface) return;
@@ -214,6 +217,7 @@ void vtx_nic_parse_interface_set_flags(JsonObject *iface, gboolean up, gboolean 
   json_object_set_boolean_member(iface, "running", running);
 }
 
+// Attaches an iw JsonObject to the interface and optionally marks it as iw-only if it had no ifaddrs entry.
 void vtx_nic_parse_interface_attach_iw(JsonObject *iface, JsonObject *iw, gboolean from_iw_only)
 {
   if (!iface || !iw) return;
@@ -221,6 +225,7 @@ void vtx_nic_parse_interface_attach_iw(JsonObject *iface, JsonObject *iw, gboole
   if (from_iw_only) json_object_set_boolean_member(iface, "from_iw_only", TRUE);
 }
 
+// Attaches wpa_status and wpa_signal JsonObjects to the interface, representing WiFi connection details.
 void vtx_nic_parse_interface_attach_wifi(JsonObject *iface, JsonObject *status, JsonObject *signal)
 {
   if (!iface) return;
@@ -228,12 +233,14 @@ void vtx_nic_parse_interface_attach_wifi(JsonObject *iface, JsonObject *status, 
   if (signal) json_object_set_object_member(iface, "wpa_signal", json_object_ref(signal));
 }
 
+// Attaches an ethtool JsonArray to the interface object under the "ethtool" key.
 void vtx_nic_parse_interface_attach_ethtool(JsonObject *iface, JsonArray *info)
 {
   if (!iface || !info) return;
   json_object_set_array_member(iface, "ethtool", json_array_ref(info));
 }
 
+// Appends an interface JsonObject to the interfaces JsonArray.
 void vtx_nic_parse_interface_add(JsonArray *interfaces, JsonObject *iface)
 {
   if (!interfaces || !iface) return;

@@ -241,8 +241,7 @@ int vtx_msp_detect_all(char ***ports_out)
   return count;
 }
 
-// ミリ秒単位でスリープ
-// void vtx_msp_sleep_ms(int milliseconds)
+// void vtx_msp_sleep_ms(int milliseconds)  // Sleep for the given number of milliseconds
 // {
 //   struct timespec ts;
 //   ts.tv_sec = milliseconds / 1000;
@@ -250,7 +249,7 @@ int vtx_msp_detect_all(char ***ports_out)
 //   nanosleep(&ts, NULL);
 // }
 
-// MSP初期化
+// Open and configure a serial port for MSP communication, returning 1 on success.
 int vtx_msp_init(MSP *msp, const char *port, speed_t baudrate)
 {
   msp->serial_fd = open(port, O_RDWR | O_NOCTTY | O_SYNC);
@@ -272,12 +271,12 @@ int vtx_msp_init(MSP *msp, const char *port, speed_t baudrate)
   cfsetospeed(&tty, baudrate);
   cfsetispeed(&tty, baudrate);
 
-  tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;  // 8ビット
+  tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;  // 8-bit
   tty.c_iflag &= ~IGNBRK;
   tty.c_lflag = 0;
   tty.c_oflag = 0;
   tty.c_cc[VMIN] = 0;
-  tty.c_cc[VTIME] = 5;  // 0.5秒タイムアウト
+  tty.c_cc[VTIME] = 5;  // 0.5-second timeout
 
   tty.c_iflag &= ~(IXON | IXOFF | IXANY);
   tty.c_cflag |= (CLOCAL | CREAD);
@@ -299,7 +298,7 @@ int vtx_msp_init(MSP *msp, const char *port, speed_t baudrate)
   return 1;
 }
 
-// MSP終了処理
+// Close the serial file descriptor associated with the MSP connection.
 void vtx_msp_close(MSP *msp)
 {
   if (msp->serial_fd >= 0)
@@ -308,12 +307,12 @@ void vtx_msp_close(MSP *msp)
   }
 }
 
-// MSPコマンド送信
+// Build and write an MSP v1 request packet to the serial port, returning 1 on success.
 int msp_send_command(MSP *msp, uint8_t cmd, const uint8_t *data, uint8_t data_size)
 {
   uint8_t checksum = data_size ^ cmd;
 
-  // パケット構築: $M< + size + cmd + data + checksum
+  // Build packet: $M< + size + cmd + data + checksum
   uint8_t packet[256];
   int idx = 0;
   packet[idx++] = '$';
@@ -329,19 +328,19 @@ int msp_send_command(MSP *msp, uint8_t cmd, const uint8_t *data, uint8_t data_si
   }
   packet[idx++] = checksum;
 
-  // 送信
+  // Send
   ssize_t written = write(msp->serial_fd, packet, idx);
   return written == idx;
 }
 
-// MSP応答受信
+// Read an MSP v1 response from the serial port within the given timeout, returning the payload size or 0 on error.
 int msp_receive_response(MSP *msp, uint8_t *response, int max_size, int timeout_ms)
 {
   uint8_t buffer;
   struct timespec start, now;
   clock_gettime(CLOCK_MONOTONIC, &start);
 
-  // ヘッダー待機: $M>
+  // Wait for header: $M>
   while (1)
   {
     if (read(msp->serial_fd, &buffer, 1) == 1)
@@ -352,7 +351,7 @@ int msp_receive_response(MSP *msp, uint8_t *response, int max_size, int timeout_
         {
           if (read(msp->serial_fd, &buffer, 1) == 1 && buffer == '>')
           {
-            break;  // ヘッダー発見
+            break;  // Header found
           }
         }
       }
@@ -367,19 +366,19 @@ int msp_receive_response(MSP *msp, uint8_t *response, int max_size, int timeout_
     }
   }
 
-  // サイズ読み取り
+  // Read size
   uint8_t size;
   if (read(msp->serial_fd, &size, 1) != 1)
   {
     return 0;
   }
-  // コマンド読み取り
+  // Read command
   uint8_t cmd;
   if (read(msp->serial_fd, &cmd, 1) != 1)
   {
     return 0;
   }
-  // データ読み取り
+  // Read data
   uint8_t checksum = size ^ cmd;
   for (int i = 0; i < size && i < max_size; i++)
   {
@@ -394,7 +393,7 @@ int msp_receive_response(MSP *msp, uint8_t *response, int max_size, int timeout_
     }
   }
 
-  // チェックサム検証
+  // Verify checksum
   uint8_t received_checksum;
   if (read(msp->serial_fd, &received_checksum, 1) != 1 || checksum != received_checksum)
   {
@@ -405,7 +404,7 @@ int msp_receive_response(MSP *msp, uint8_t *response, int max_size, int timeout_
   return size;
 }
 
-// MSPコマンドを送信して生のレスポンスバイトを取得
+// Send an MSP command and return the raw response bytes, returning the payload size or 0 on failure.
 int msp_request_raw(MSP *msp, uint16_t cmd, uint8_t *response, size_t response_size)
 {
   if (!msp_send_command(msp, cmd, NULL, 0))

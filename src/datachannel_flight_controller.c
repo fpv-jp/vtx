@@ -25,13 +25,13 @@ guint timeout_id_msp_analog = 0;
 guint timeout_id_msp_sonar = 0;
 guint timeout_id_msp_battery_state = 0;
 
-// --- vtx_msp_set_global ----------------------------------
+// Stores the given MSP connection pointer as the global MSP instance.
 void vtx_msp_set_global(MSP *msp)
 {
   g_msp = msp;
 }
 
-// --- vtx_msp_cleanup_global ----------------------------------
+// Closes and frees the global MSP connection if one is open.
 void vtx_msp_cleanup_global(void)
 {
   if (g_msp)
@@ -42,7 +42,7 @@ void vtx_msp_cleanup_global(void)
   }
 }
 
-// --- vtx_dc_cleanup ----------------------------------
+// Cancels all MSP/WPA timeout sources and closes every open DataChannel, freeing their resources.
 void vtx_dc_cleanup(void)
 {
   // Remove all timeout sources first
@@ -146,7 +146,7 @@ void vtx_dc_cleanup(void)
   gst_println("Data channels cleaned up");
 }
 
-// --- vtx_msp_flight_controller ----------------------------------
+// Detects all connected flight controllers via MSP, retrieves board info and status for each, and returns the results as a JSON array.
 JsonArray *vtx_msp_flight_controller(void)
 {
   JsonArray *flight_controllers = json_array_new();
@@ -277,7 +277,7 @@ JsonArray *vtx_msp_flight_controller(void)
   return flight_controllers;
 }
 
-// --- vtx_send_msp_raw_imu ----------------------------------
+// Sends raw IMU data (accelerometer, gyroscope, magnetometer) over the MSP_RAW_IMU DataChannel at 50 Hz.
 gboolean vtx_send_msp_raw_imu(gpointer user_data)
 {
   if (!dc_msp_raw_imu) return G_SOURCE_REMOVE;
@@ -306,7 +306,7 @@ gboolean vtx_send_msp_raw_imu(gpointer user_data)
   return G_SOURCE_CONTINUE;
 }
 
-// --- vtx_send_msp_raw_gps ----------------------------------
+// Sends raw GPS data (fix, satellite count, lat/lon, altitude, speed, course) over the MSP_RAW_GPS DataChannel at 1 Hz.
 gboolean vtx_send_msp_raw_gps(gpointer user_data)
 {
   if (!dc_msp_raw_gps) return G_SOURCE_REMOVE;
@@ -335,7 +335,7 @@ gboolean vtx_send_msp_raw_gps(gpointer user_data)
   return G_SOURCE_CONTINUE;
 }
 
-// --- vtx_send_msp_comp_gps ----------------------------------
+// Sends computed GPS data (distance to home, direction to home, heartbeat) over the MSP_COMP_GPS DataChannel at 1 Hz.
 gboolean vtx_send_msp_comp_gps(gpointer user_data)
 {
   if (!dc_msp_comp_gps) return G_SOURCE_REMOVE;
@@ -364,7 +364,7 @@ gboolean vtx_send_msp_comp_gps(gpointer user_data)
   return G_SOURCE_CONTINUE;
 }
 
-// --- vtx_send_msp_attitude ----------------------------------
+// Sends attitude data (roll, pitch, heading) over the MSP_ATTITUDE DataChannel at 30 Hz.
 gboolean vtx_send_msp_attitude(gpointer user_data)
 {
   if (!dc_msp_attitude) return G_SOURCE_REMOVE;
@@ -393,7 +393,7 @@ gboolean vtx_send_msp_attitude(gpointer user_data)
   return G_SOURCE_CONTINUE;
 }
 
-// --- vtx_send_msp_altitude ----------------------------------
+// Sends estimated altitude data over the MSP_ALTITUDE DataChannel at 10 Hz.
 gboolean vtx_send_msp_altitude(gpointer user_data)
 {
   if (!dc_msp_altitude) return G_SOURCE_REMOVE;
@@ -422,7 +422,7 @@ gboolean vtx_send_msp_altitude(gpointer user_data)
   return G_SOURCE_CONTINUE;
 }
 
-// --- vtx_send_msp_analog ----------------------------------
+// Sends analog telemetry data (voltage, current draw, RSSI, amperage) over the MSP_ANALOG DataChannel at 2 Hz.
 gboolean vtx_send_msp_analog(gpointer user_data)
 {
   if (!dc_msp_analog) return G_SOURCE_REMOVE;
@@ -451,7 +451,7 @@ gboolean vtx_send_msp_analog(gpointer user_data)
   return G_SOURCE_CONTINUE;
 }
 
-// --- vtx_send_msp_sonar ----------------------------------
+// Sends sonar altitude data over the MSP_SONAR DataChannel at 10 Hz.
 gboolean vtx_send_msp_sonar(gpointer user_data)
 {
   if (!dc_msp_sonar) return G_SOURCE_REMOVE;
@@ -480,7 +480,7 @@ gboolean vtx_send_msp_sonar(gpointer user_data)
   return G_SOURCE_CONTINUE;
 }
 
-// --- vtx_send_msp_battery_state ----------------------------------
+// Sends battery state data (cell count, capacity, voltage, drawn mAh, amperage, state) over the MSP_BATTERY_STATE DataChannel at 2 Hz.
 gboolean vtx_send_msp_battery_state(gpointer user_data)
 {
   if (!dc_msp_battery_state) return G_SOURCE_REMOVE;

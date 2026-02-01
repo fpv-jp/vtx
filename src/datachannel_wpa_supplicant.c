@@ -39,7 +39,7 @@ struct wpa_ctrl
   struct sockaddr_un dest;
 };
 
-// --- vtx_wpa_ctrl_open ----------------------------------
+// Opens a Unix domain socket connection to the wpa_supplicant control interface at the given path.
 static struct wpa_ctrl *vtx_wpa_ctrl_open(const char *ctrl_path)
 {
   struct wpa_ctrl *ctrl;
@@ -96,7 +96,7 @@ try_again:
   return ctrl;
 }
 
-// --- vtx_wpa_ctrl_close ----------------------------------
+// Closes a wpa_supplicant control socket and removes its temporary local socket file.
 static void vtx_wpa_ctrl_close(struct wpa_ctrl *ctrl)
 {
   if (ctrl == NULL) return;
@@ -105,7 +105,7 @@ static void vtx_wpa_ctrl_close(struct wpa_ctrl *ctrl)
   free(ctrl);
 }
 
-// --- vtx_wpa_ctrl_request ----------------------------------
+// Sends a command to the wpa_supplicant control socket and receives its reply.
 static int vtx_wpa_ctrl_request(struct wpa_ctrl *ctrl, const char *cmd, size_t cmd_len, char *reply, size_t *reply_len)
 {
   if (send(ctrl->s, cmd, cmd_len, 0) < 0) return -1;
@@ -118,7 +118,7 @@ static int vtx_wpa_ctrl_request(struct wpa_ctrl *ctrl, const char *cmd, size_t c
   return 0;
 }
 
-// --- vtx_wpa_copy_response ----------------------------------
+// Safely copies a response string from src into dest, ensuring null-termination within dest_size.
 static void vtx_wpa_copy_response(char *dest, size_t dest_size, const char *src, size_t src_len)
 {
   if (!dest || dest_size == 0) return;
@@ -128,8 +128,7 @@ static void vtx_wpa_copy_response(char *dest, size_t dest_size, const char *src,
   dest[copy_len] = '\0';
 }
 
-// Event handler callback for GIOChannel
-// --- on_wpa_event ----------------------------------
+// GIOChannel callback that reads wpa_supplicant monitor events and invokes the appropriate signal or status change callback.
 static gboolean on_wpa_event(GIOChannel *source, GIOCondition condition, gpointer user_data)
 {
   WpaSupplicant *wpa = (WpaSupplicant *) user_data;
@@ -177,7 +176,7 @@ static gboolean on_wpa_event(GIOChannel *source, GIOCondition condition, gpointe
   return G_SOURCE_CONTINUE;
 }
 
-// --- vtx_wpa_supplicant_new ----------------------------------
+// Allocates and connects a new WpaSupplicant instance for the given interface, opening both control and monitor sockets.
 WpaSupplicant *vtx_wpa_supplicant_new(const char *interface_name, const char *ctrl_path)
 {
   WpaSupplicant *wpa = g_new0(WpaSupplicant, 1);
@@ -218,7 +217,7 @@ WpaSupplicant *vtx_wpa_supplicant_new(const char *interface_name, const char *ct
   return wpa;
 }
 
-// --- vtx_wpa_supplicant_free ----------------------------------
+// Stops the event monitor, detaches from wpa_supplicant, closes all sockets, and frees the WpaSupplicant instance.
 void vtx_wpa_supplicant_free(WpaSupplicant *wpa)
 {
   if (!wpa) return;
@@ -243,7 +242,7 @@ void vtx_wpa_supplicant_free(WpaSupplicant *wpa)
   g_free(wpa);
 }
 
-// --- vtx_wpa_supplicant_start_monitor ----------------------------------
+// Starts GLib I/O event monitoring on the wpa_supplicant monitor socket to receive asynchronous notifications.
 gboolean vtx_wpa_supplicant_start_monitor(WpaSupplicant *wpa)
 {
   if (!wpa || !wpa->monitor) return FALSE;
@@ -263,7 +262,7 @@ gboolean vtx_wpa_supplicant_start_monitor(WpaSupplicant *wpa)
   return TRUE;
 }
 
-// --- vtx_wpa_supplicant_stop_monitor ----------------------------------
+// Removes the GLib I/O watch and releases the GIOChannel used for wpa_supplicant event monitoring.
 void vtx_wpa_supplicant_stop_monitor(WpaSupplicant *wpa)
 {
   if (!wpa) return;
@@ -283,7 +282,7 @@ void vtx_wpa_supplicant_stop_monitor(WpaSupplicant *wpa)
   gst_println("[WPA] Event monitoring stopped");
 }
 
-// --- vtx_wpa_supplicant_get_status ----------------------------------
+// Queries the current connection status and signal info from wpa_supplicant and stores the raw responses in status.
 gboolean vtx_wpa_supplicant_get_status(WpaSupplicant *wpa, WpaStatus *status)
 {
   if (!wpa || !wpa->ctrl || !status) return FALSE;
@@ -307,7 +306,7 @@ gboolean vtx_wpa_supplicant_get_status(WpaSupplicant *wpa, WpaStatus *status)
   return TRUE;
 }
 
-// --- vtx_wpa_supplicant_get_signal_poll ----------------------------------
+// Sends a SIGNAL_POLL request to wpa_supplicant and stores the raw signal information in signal.
 gboolean vtx_wpa_supplicant_get_signal_poll(WpaSupplicant *wpa, WpaSignalInfo *signal)
 {
   if (!wpa || !wpa->ctrl || !signal) return FALSE;
@@ -330,7 +329,7 @@ WpaSupplicant *g_wpa_supplicant = NULL;
 GObject *dc_wpa_supplicant = NULL;
 guint timeout_id_wpa_supplicant = 0;
 
-// --- vtx_wpa_supplicant_init ----------------------------------
+// Initializes the global wpa_supplicant instance for the given interface and starts event monitoring.
 gboolean vtx_wpa_supplicant_init(const char *interface_name)
 {
   if (g_wpa_supplicant)
@@ -360,7 +359,7 @@ gboolean vtx_wpa_supplicant_init(const char *interface_name)
   return TRUE;
 }
 
-// --- vtx_wpa_supplicant_cleanup ----------------------------------
+// Cancels the WPA DataChannel timeout, releases the DataChannel object, and frees the global wpa_supplicant instance.
 void vtx_wpa_supplicant_cleanup(void)
 {
   if (timeout_id_wpa_supplicant > 0)
@@ -384,7 +383,7 @@ void vtx_wpa_supplicant_cleanup(void)
   gst_println("[WPA] Cleaned up");
 }
 
-// --- vtx_wpa_send_status ----------------------------------
+// Fetches the current wpa_supplicant status and signal info and sends them as a JSON string over the WPA_SUPPLICANT DataChannel.
 gboolean vtx_wpa_send_status(gpointer user_data)
 {
   GObject *dc = (GObject *) user_data;

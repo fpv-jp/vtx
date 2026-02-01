@@ -4,7 +4,7 @@
 #include "headers/data_channel.h"
 #include "headers/utils.h"
 
-// --- vtx_webrtc_send_sdp_offer ----------------------------------
+// Serializes the local SDP offer and sends it to the receiver via the signaling WebSocket.
 static void vtx_webrtc_send_sdp_offer(GstWebRTCSessionDescription *desc)
 {
   gchar *sdp = gst_sdp_message_as_text(desc->sdp);
@@ -22,7 +22,7 @@ static void vtx_webrtc_send_sdp_offer(GstWebRTCSessionDescription *desc)
   json_object_unref(msg);
 }
 
-// --- vtx_webrtc_on_ice_candidate ----------------------------------
+// Signal handler that forwards a locally gathered ICE candidate to the receiver via the signaling WebSocket.
 void vtx_webrtc_on_ice_candidate(GstElement *webrtc, guint mlineindex, gchar *candidate, gpointer user_data)
 {
   JsonObject *ice = json_object_new();
@@ -37,7 +37,7 @@ void vtx_webrtc_on_ice_candidate(GstElement *webrtc, guint mlineindex, gchar *ca
   json_object_unref(msg);
 }
 
-// --- vtx_webrtc_notify_ice_gathering_state ----------------------------------
+// Logs the current ICE gathering state (new / gathering / complete) whenever it changes.
 void vtx_webrtc_notify_ice_gathering_state(GstElement *webrtc, GParamSpec *pspec, gpointer user_data)
 {
   GstWebRTCICEGatheringState state;
@@ -58,7 +58,7 @@ void vtx_webrtc_notify_ice_gathering_state(GstElement *webrtc, GParamSpec *pspec
   gst_println("--- ICE gathering state: %s", state_str);
 }
 
-// --- vtx_webrtc_notify_ice_connection_state ----------------------------------
+// Logs the current ICE connection state (checking / connected / failed / etc.) whenever it changes.
 void vtx_webrtc_notify_ice_connection_state(GstElement *webrtc, GParamSpec *pspec, gpointer user_data)
 {
   GstWebRTCICEConnectionState state;
@@ -93,7 +93,7 @@ void vtx_webrtc_notify_ice_connection_state(GstElement *webrtc, GParamSpec *pspe
   gst_println("=== ICE connection state: %s", state_str);
 }
 
-// --- vtx_webrtc_on_create_offer ----------------------------------
+// Promise callback that retrieves the generated SDP offer, sets it as the local description, and sends it to the receiver.
 static void vtx_webrtc_on_create_offer(GstPromise *promise, gpointer user_data)
 {
   GstWebRTCSessionDescription *offer = NULL;
@@ -109,7 +109,7 @@ static void vtx_webrtc_on_create_offer(GstPromise *promise, gpointer user_data)
   gst_webrtc_session_description_free(offer);
 }
 
-// --- vtx_webrtc_on_negotiation_needed ----------------------------------
+// Signal handler triggered by webrtcbin when negotiation is needed; creates DataChannels and initiates SDP offer creation.
 void vtx_webrtc_on_negotiation_needed(GstElement *element, gpointer user_data)
 {
   app_state = PEER_CALL_NEGOTIATING;

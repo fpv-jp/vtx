@@ -11,7 +11,7 @@ typedef struct
   GObject **dc_ref;
   gboolean ordered;
   gboolean use_lifetime;
-  guint value;  // max-packet-lifetime または max-retransmits
+  guint value;  // max-packet-lifetime or max-retransmits
 } ChannelConfig;
 
 typedef enum
@@ -28,15 +28,11 @@ void vtx_webrtc_on_data_channel(GstElement *webrtc, GObject *data_channel, gpoin
 
 void vtx_dc_create_offer(GstElement *webrtc);
 
-// ----------------------------------
-
 #define CHANNEL_TYPE_CMD "CMD"
 
 extern GObject *dc_cmd;
 
 void vtx_dc_on_message_command(GObject *dc, gchar *str, gpointer user_data);
-
-// ----------------------------------
 
 #define CHANNEL_TYPE_MSP_RAW_IMU "MSP_RAW_IMU"
 #define CHANNEL_TYPE_MSP_RAW_GPS "MSP_RAW_GPS"

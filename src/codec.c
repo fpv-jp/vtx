@@ -8,6 +8,7 @@ static const gchar *s_platform_serviceable_codecs[MAX_ALLOWED_CODECS] = {NULL};
 
 static gboolean s_supported_codecs_initialized = FALSE;
 
+// Populates s_platform_serviceable_codecs with the encoder names supported by the current platform and GPU.
 static void vtx_platform_serviceable_codecs(void)
 {
   switch (g_platform)
@@ -24,7 +25,7 @@ static void vtx_platform_serviceable_codecs(void)
 
     case LINUX_X86:
   // ┌────────┬──────────────────────────────────────────────────────────┬───────────────────────┐
-  // │  GPU   │                       エンコーダー                         │         説明           │
+  // │  GPU   │                       Encoder                              │       Description      │
   // ├────────┼──────────────────────────────────────────────────────────┼───────────────────────┤
   // │ AMD    │ amfav1enc, amfh264enc, amfh265enc                        │ AMF API               │
   // ├────────┼──────────────────────────────────────────────────────────┼───────────────────────┤
@@ -184,6 +185,7 @@ static void vtx_copy_structure_to_json(const GstStructure *s, JsonObject *o)
   }
 }
 
+// Queries GStreamer for all encoder factories allowed on this platform and returns them as a JsonObject with "video" and "audio" arrays.
 JsonObject *vtx_supported_codec_inspection(void)
 {
   JsonArray *video_codecs_array = json_array_new();

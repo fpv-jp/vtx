@@ -71,7 +71,7 @@ void vtx_detect_gpu_vendor(void)
   gst_printerrln("  WARNING: Could not detect GPU vendor, using UNKNOWN");
 }
 
-// --- vtx_gpu_vendor_to_string ----------------------------------
+// Returns a static string name for the given GpuVendor enum value.
 gchar *vtx_gpu_vendor_to_string(GpuVendor vendor)
 {
   switch (vendor)
@@ -87,7 +87,7 @@ gchar *vtx_gpu_vendor_to_string(GpuVendor vendor)
   }
 }
 
-// --- vtx_detect_platform ----------------------------------
+// Detects the hardware platform by reading /proc/device-tree/model or compiler macros and sets g_platform.
 void vtx_detect_platform(void)
 {
   gst_println("----- Detecting platform -----");
@@ -158,7 +158,7 @@ void vtx_detect_platform(void)
   gst_printerrln("  WARNING: Could not detect platform, using UNKNOWN");
 }
 
-// --- vtx_platform_to_string ----------------------------------
+// Returns a static string name for the given PlatformType enum value.
 gchar *vtx_platform_to_string(PlatformType platform)
 {
   switch (platform)
@@ -186,7 +186,7 @@ gchar *vtx_platform_to_string(PlatformType platform)
   }
 }
 
-// --- vtx_ws_send ----------------------------------
+// Serializes a signaling message (type, session IDs, and data fields) to JSON and sends it over the WebSocket connection.
 void vtx_ws_send(SoupWebsocketConnection *conn, int type, const gchar *ws1Id, const gchar *ws2Id, JsonObject *data)
 {
   JsonObject *msg = json_object_new();
@@ -223,7 +223,7 @@ void vtx_ws_send(SoupWebsocketConnection *conn, int type, const gchar *ws1Id, co
   json_object_unref(msg);
 }
 
-// --- vtx_cleanup_connection ----------------------------------
+// Tears down data channels, MSP, WPA, pipeline, and webrtcbin, then resets app_state to SERVER_REGISTERED.
 gboolean vtx_cleanup_connection(const gchar *msg)
 {
   if (msg) gst_printerrln("%s", msg);
@@ -266,7 +266,7 @@ gboolean vtx_cleanup_connection(const gchar *msg)
   return TRUE;
 }
 
-// --- vtx_cleanup_and_quit_loop ----------------------------------
+// Cleans up all resources, closes the WebSocket connection, and quits the GLib main loop.
 gboolean vtx_cleanup_and_quit_loop(const gchar *msg, AppState state)
 {
   if (msg) gst_printerrln("%s", msg);
@@ -297,7 +297,7 @@ gboolean vtx_cleanup_and_quit_loop(const gchar *msg, AppState state)
   return TRUE;
 }
 
-// --- vtx_check_gst_plugins ----------------------------------
+// Verifies that all GStreamer plugins required for the current platform are present in the registry.
 gboolean vtx_check_gst_plugins(void)
 {
   gst_println("----- Check GStreamer plugins -----");
@@ -432,7 +432,7 @@ gboolean vtx_check_gst_plugins(void)
   return ret;
 }
 
-// --- print_json_object ----------------------------------
+// Pretty-prints a JsonObject to stdout using gst_println.
 void print_json_object(JsonObject *obj)
 {
   JsonNode *node = json_node_new(JSON_NODE_OBJECT);
@@ -446,7 +446,7 @@ void print_json_object(JsonObject *obj)
   json_node_free(node);
 }
 
-// --- print_json_array ----------------------------------
+// Pretty-prints a JsonArray to stdout using gst_println.
 void print_json_array(JsonArray *array)
 {
   JsonNode *node = json_node_new(JSON_NODE_ARRAY);
