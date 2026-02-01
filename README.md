@@ -2,82 +2,65 @@
 
 Video and telemetry transmission using GStreamer.
 
-> **Note:** Documentation is under active development.
+This program uses GStreamer's `webrtcbin` to transmit video, audio, and telemetry via WebRTC.
 
-## Prerequisites
+The transmission flow is as follows:
 
-### Development Tools
+1. Upon request from vrx, vtx returns a list of available Wi-Fi interfaces, flight controllers, cameras, microphones, and encoders.
+2. vrx selects the desired devices and pipeline configuration, and sends a request to vtx. vtx then responds with an SDP offer to initiate negotiation.
+3. Once SDP answer and ICE negotiation with vrx completes, video and audio streaming begins.
+4. A DataChannel is opened to transmit telemetry (sensor values read from the flight controller).
 
-```bash
-sudo apt install -y curl git bear ethtool
+The WebRTC direction is `sendonly` (vtx → vrx).
+
+### Supported Platforms
+
+- macOS
+- Debian/Ubuntu (requires an Nvidia, AMD, or Intel GPU)
+- Raspberry Pi 4B
+- Raspberry Pi Compute Module 4
+- Raspberry Pi 5B (software encoding only)
+- Jetson Nano 2GB Developer Kit
+- Jetson Orin Nano Super (software encoding only)
+- Radxa ROCK 5B
+- Radxa ROCK 5T
+
+## Development Setup
+
+The following instructions assume remote development over SSH (e.g., using VS Code Remote SSH) connected to a development machine.
+
+**Prerequisite:** Complete the GStreamer installation by following the instructions at [fpv-jp/bsp - GStreamer](https://github.com/fpv-jp/bsp/tree/main/Gstreamer).
+
+### 1. Start the signaling server
+
+Start the signaling server from [app](https://github.com/fpv-jp/app) for SDP/ICE exchange.
+
+### 2. Build
+
+```
+make
 ```
 
-```bash
-sudo apt install -y nodejs npm
-mkdir -p ~/.npm-global
-npm config set prefix '~/.npm-global'
-echo 'export PATH=$HOME/.npm-global/bin:$PATH' >> ~/.bashrc
-source ~/.bashrc
+### 3. Download the CA certificate
+
+```sh
+curl -L -o server-ca-cert.pem https://raw.githubusercontent.com/fpv-jp/app/refs/heads/main/certificate/server-ca-cert.pem
 ```
 
-```bash
-sudo apt install -y docker.io
-sudo usermod -aG docker $(whoami)
+### 4. Run
+
+```
+./vtx
 ```
 
-### Build Dependencies
+> **Note:** To use the public fpv.jp signaling server for testing:
+> ```
+> SIGNALING_ENDPOINT=wss://fpv.jp/signaling SERVER_CERTIFICATE_AUTHORITY= ./vtx
+> ```
 
-```bash
-sudo apt install -y v4l-utils libasound2-dev libssl-dev libsoup-3.0-dev libjson-glib-dev libnice-dev
+## Production Deployment
 
-sudo apt install -y libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev
-```
-
-### Runtime Dependencies
-
-```bash
-sudo apt install -y gstreamer1.0-tools gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-nice gstreamer1.0-vaapi gstreamer1.0-alsa
-```
-
-### GStreamer Plugin Configuration
-
-Disable conflicting plugins to ensure proper hardware access:
-
-```bash
-GST=$(pkg-config --variable=pluginsdir gstreamer-1.0)
-
-# Use ALSA instead of PulseAudio
-[ -f "$GST/libgstpulseaudio.so" ] && sudo mv "$GST/libgstpulseaudio.so" "$GST/libgstpulseaudio.so.disabled"
-
-# Use V4L2 instead of libcamera
-# [ -f "$GST/libgstlibcamera.so" ] && sudo mv "$GST/libgstlibcamera.so" "$GST/libgstlibcamera.so.disabled"
-
-# Disable PipeWire
-[ -f "$GST/libgstpipewire.so" ] && sudo mv "$GST/libgstpipewire.so" "$GST/libgstpipewire.so.disabled"
-```
-
-### User Group Configuration
-
-```bash
-# GPU access
-sudo usermod -aG render $(whoami)
-
-# FC access
-sudo usermod -aG dialout $USER
-
-# WAP access
-sudo usermod -aG netdev $USER
-```
-
-> **Note:** Log out and back in for group changes to take effect.
-
-## Building
-
-```bash
-make all PLATFORM=LINUX_X86
-```
-
-## Install
+**Prerequisite:** For Wi-Fi configuration, see [fpv-jp/bsp - Wifi](https://github.com/fpv-jp/bsp/tree/main/Wifi).
 
 ### 1. Start the Signaling Server
 
@@ -111,9 +94,6 @@ To run vtx manually for debugging:
 # Stop and disable the system service
 sudo systemctl stop vtx.service
 sudo systemctl disable vtx.service
-
-# Run manually
-./vtx
 ```
 
 ## Service Management
