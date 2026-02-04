@@ -38,6 +38,9 @@ jobs:
           - jetson-orin-nano-super
       fail-fast: false
 
+    permissions:
+      contents: write
+
     runs-on:
       - self-hosted
       - ${{ matrix.runner }}
