@@ -6,7 +6,29 @@ on:
       - "v*-rc*"  # v0.0.1-rc1, v0.0.1-rc2 形式
 
 jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      upload_url: ${{ steps.create.outputs.upload_url }}
+    steps:
+      - name: Create Draft Release
+        id: create
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --draft \
+            --prerelease \
+            --generate-notes \
+            --title "${GITHUB_REF_NAME}"
+          UPLOAD_URL=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${GITHUB_REF_NAME}" --jq '.upload_url')
+          echo "upload_url=${UPLOAD_URL}" >> "${GITHUB_OUTPUT}"
+
   build:
+    needs: create-release
     strategy:
       matrix:
         runner:
@@ -43,67 +65,54 @@ jobs:
             exit 1
           fi
 
-      - name: Rename binary with runner suffix
-        run: mv vtx vtx-${{ matrix.runner }}
+      - name: Upload binary to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPLOAD_URL: ${{ needs.create-release.outputs.upload_url }}
+        run: |
+          URL="${UPLOAD_URL%%\{*}"
+          curl -sSf -L \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "Content-Type: application/octet-stream" \
+            "${URL}?name=vtx-${{ matrix.runner }}" \
+            --data-binary @vtx
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: vtx-${{ matrix.runner }}
-          path: vtx-${{ matrix.runner }}
-          retention-days: 3
-
-  release:
-    needs: build
+  finalize-release:
+    needs: [create-release, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
-
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v3
-        with:
-          path: artifacts
-
-      - name: Display artifacts
-        run: |
-          echo "=== Downloaded artifacts ==="
-          ls -R artifacts/
-          find artifacts -type f
-
-      - name: Prepare release files with aliases
-        run: |
-          mkdir -p release
-
-          # Copy original binaries
-          find artifacts -type f -exec cp -v {} release/ \;
-
-          # Create aliases for compatible platforms
-          # Raspberry Pi: raspberry-pi-5b binary works for all Pi 4/5 with same OS
-          if [ -f release/vtx-raspberry-pi-5b ]; then
-            cp release/vtx-raspberry-pi-5b release/vtx-raspberry-pi-4b
-            cp release/vtx-raspberry-pi-5b release/vtx-raspberry-pi-4cm
-          fi
-
-          # Radxa ROCK 5: radxa-rock-5b binary works for all ROCK 5 series
-          if [ -f release/vtx-radxa-rock-5b ]; then
-            cp release/vtx-radxa-rock-5b release/vtx-radxa-rock-5b-plus
-            cp release/vtx-radxa-rock-5b release/vtx-radxa-rock-5t
-          fi
-
-          # Jetson: each requires separate binary (no aliases)
-          # jetson-nano-2gb-devkit -> vtx-jetson-nano-2gb-devkit
-          # jetson-orin-nano-super -> vtx-jetson-orin-nano-super
-
-          echo "=== Final release files ==="
-          ls -lh release/
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: release/*
-          draft: false
-          prerelease: true
-          generate_release_notes: true
+      - name: Add aliases and publish release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          REPO="${GITHUB_REPOSITORY}"
+          mkdir -p assets
+          gh release download "${TAG}" --repo "${REPO}" --dir assets
+
+          echo "=== Downloaded assets ==="
+          ls -lh assets/
+
+          # Raspberry Pi aliases
+          if [ -f assets/vtx-raspberry-pi-5b ]; then
+            cp assets/vtx-raspberry-pi-5b assets/vtx-raspberry-pi-4b
+            cp assets/vtx-raspberry-pi-5b assets/vtx-raspberry-pi-4cm
+            gh release upload "${TAG}" assets/vtx-raspberry-pi-4b assets/vtx-raspberry-pi-4cm --repo "${REPO}"
+          fi
+
+          # Radxa ROCK 5 aliases
+          if [ -f assets/vtx-radxa-rock-5b ]; then
+            cp assets/vtx-radxa-rock-5b assets/vtx-radxa-rock-5b-plus
+            cp assets/vtx-radxa-rock-5b assets/vtx-radxa-rock-5t
+            gh release upload "${TAG}" assets/vtx-radxa-rock-5b-plus assets/vtx-radxa-rock-5t --repo "${REPO}"
+          fi
+
+          # Publish release (remove draft status)
+          gh release edit "${TAG}" --draft=false --repo "${REPO}"
+
+          echo "=== Final release assets ==="
+          gh release view "${TAG}" --repo "${REPO}"
