@@ -18,13 +18,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${GITHUB_REF_NAME}" \
-            --repo "${GITHUB_REPOSITORY}" \
-            --draft \
-            --prerelease \
-            --generate-notes \
-            --title "${GITHUB_REF_NAME}"
-          UPLOAD_URL=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${GITHUB_REF_NAME}" --jq '.upload_url')
+          UPLOAD_URL=$(gh api "repos/${GITHUB_REPOSITORY}/releases" \
+            -f tag_name="${GITHUB_REF_NAME}" \
+            -f name="${GITHUB_REF_NAME}" \
+            -F draft=true \
+            -F prerelease=true \
+            -F generate_release_notes=true \
+            --jq '.upload_url')
           echo "upload_url=${UPLOAD_URL}" >> "${GITHUB_OUTPUT}"
 
   build:
