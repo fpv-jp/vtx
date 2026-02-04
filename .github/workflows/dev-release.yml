@@ -10,9 +10,9 @@ jobs:
     strategy:
       matrix:
         runner:
-          - raspi5b
-          - rock-5b
-          - jetson-nano-2gb
+          - raspberry-pi-5b
+          - radxa-rock-5b
+          - jetson-nano-2gb-devkit
           - jetson-orin-nano-super
       fail-fast: false
 
@@ -75,20 +75,20 @@ jobs:
           find artifacts -type f -exec cp -v {} release/ \;
 
           # Create aliases for compatible platforms
-          # Raspberry Pi: raspi5b binary works for all Pi 4/5 with same OS
-          if [ -f release/vtx-raspi5b ]; then
-            cp release/vtx-raspi5b release/vtx-raspi4b
-            cp release/vtx-raspi5b release/vtx-raspi4cm
+          # Raspberry Pi: raspberry-pi-5b binary works for all Pi 4/5 with same OS
+          if [ -f release/vtx-raspberry-pi-5b ]; then
+            cp release/vtx-raspberry-pi-5b release/vtx-raspberry-pi-4b
+            cp release/vtx-raspberry-pi-5b release/vtx-raspberry-pi-4cm
           fi
 
-          # Radxa ROCK 5: rock-5b binary works for all ROCK 5 series
-          if [ -f release/vtx-rock-5b ]; then
-            cp release/vtx-rock-5b release/vtx-rock-5b-plus
-            cp release/vtx-rock-5b release/vtx-rock-5t
+          # Radxa ROCK 5: radxa-rock-5b binary works for all ROCK 5 series
+          if [ -f release/vtx-radxa-rock-5b ]; then
+            cp release/vtx-radxa-rock-5b release/vtx-radxa-rock-5b-plus
+            cp release/vtx-radxa-rock-5b release/vtx-radxa-rock-5t
           fi
 
           # Jetson: each requires separate binary (no aliases)
-          # jetson-nano-2gb -> vtx-jetson-nano-2gb
+          # jetson-nano-2gb-devkit -> vtx-jetson-nano-2gb-devkit
           # jetson-orin-nano-super -> vtx-jetson-orin-nano-super
 
           echo "=== Final release files ==="
