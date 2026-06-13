@@ -17,11 +17,11 @@ static void vtx_dc_on_open(GObject *dc, gpointer user_data)
 
   // Multiwii Serial Protocol (MSP)
 
-  // MSP_RAW_IMU channel (high frequency: 50Hz)
-  else if (g_strcmp0(label, CHANNEL_TYPE_MSP_RAW_IMU) == 0)
-  {
-    timeout_id_msp_raw_imu = g_timeout_add(1000 / 50, vtx_send_msp_raw_imu, dc);
-  }
+  // MSP_RAW_IMU channel (high frequency: 50Hz) — 生値のため送信無効
+  // else if (g_strcmp0(label, CHANNEL_TYPE_MSP_RAW_IMU) == 0)
+  // {
+  //   timeout_id_msp_raw_imu = g_timeout_add(1000 / 50, vtx_send_msp_raw_imu, dc);
+  // }
   // MSP_RAW_GPS channel (1Hz)
   else if (g_strcmp0(label, CHANNEL_TYPE_MSP_RAW_GPS) == 0)
   {
@@ -42,11 +42,11 @@ static void vtx_dc_on_open(GObject *dc, gpointer user_data)
   {
     timeout_id_msp_altitude = g_timeout_add(1000 / 10, vtx_send_msp_altitude, dc);
   }
-  // MSP_ANALOG channel (2Hz)
-  else if (g_strcmp0(label, CHANNEL_TYPE_MSP_ANALOG) == 0)
-  {
-    timeout_id_msp_analog = g_timeout_add(1000 / 2, vtx_send_msp_analog, dc);
-  }
+  // MSP_ANALOG channel (2Hz) — MSP_BATTERY_STATE で代替するため送信無効
+  // else if (g_strcmp0(label, CHANNEL_TYPE_MSP_ANALOG) == 0)
+  // {
+  //   timeout_id_msp_analog = g_timeout_add(1000 / 2, vtx_send_msp_analog, dc);
+  // }
   // MSP_SONAR channel (10Hz)
   else if (g_strcmp0(label, CHANNEL_TYPE_MSP_SONAR) == 0)
   {
@@ -128,12 +128,12 @@ static void vtx_dc_create_cmd_channel(GstElement *webrtc)
 static void vtx_dc_create_msp_channels(GstElement *webrtc)
 {
   ChannelConfig configs[] = {
-      {CHANNEL_TYPE_MSP_RAW_IMU, &dc_msp_raw_imu, FALSE, TRUE, 50},            // high frequency, low-latency preferred
+      // {CHANNEL_TYPE_MSP_RAW_IMU, &dc_msp_raw_imu, FALSE, TRUE, 50},         // high frequency, low-latency preferred 生値のため送信から除外 他のチャンネルで計算済みのものを送信
       {CHANNEL_TYPE_MSP_RAW_GPS, &dc_msp_raw_gps, TRUE, FALSE, 5},             // low frequency, reliability preferred
       {CHANNEL_TYPE_MSP_COMP_GPS, &dc_msp_comp_gps, TRUE, FALSE, 5},           // low frequency, reliability preferred
       {CHANNEL_TYPE_MSP_ATTITUDE, &dc_msp_attitude, FALSE, TRUE, 100},         // medium frequency, low-latency preferred
       {CHANNEL_TYPE_MSP_ALTITUDE, &dc_msp_altitude, TRUE, FALSE, 3},           // medium frequency, balanced
-      {CHANNEL_TYPE_MSP_ANALOG, &dc_msp_analog, TRUE, FALSE, 5},               // low frequency, reliability preferred
+      // {CHANNEL_TYPE_MSP_ANALOG, &dc_msp_analog, TRUE, FALSE, 5},            // low frequency, reliability preferred MSP_BATTERY_STATE で代替するため送信から除外
       {CHANNEL_TYPE_MSP_SONAR, &dc_msp_sonar, TRUE, FALSE, 3},                 // medium frequency, balanced
       {CHANNEL_TYPE_MSP_BATTERY_STATE, &dc_msp_battery_state, TRUE, FALSE, 5}  // low frequency, reliability preferred
   };
