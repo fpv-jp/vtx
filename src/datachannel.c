@@ -4,14 +4,33 @@
 #include "headers/data_channel.h"
 #include "headers/wpa.h"
 
-// Sends a text message on the VTX_NOTIFY_MESSAGE DataChannel if it is open.
+typedef struct
+{
+  GObject *dc;
+  gchar *message;
+} NotifyData;
+
+static gboolean notify_send_idle(gpointer user_data)
+{
+  NotifyData *d = user_data;
+  GstWebRTCDataChannelState state;
+  g_object_get(d->dc, "ready-state", &state, NULL);
+  if (state == GST_WEBRTC_DATA_CHANNEL_STATE_OPEN)
+    g_signal_emit_by_name(d->dc, "send-string", d->message);
+  g_object_unref(d->dc);
+  g_free(d->message);
+  g_free(d);
+  return G_SOURCE_REMOVE;
+}
+
+// Sends a text message on the VTX_NOTIFY_MESSAGE DataChannel from the main thread.
 void vtx_dc_notify_message_send(const gchar *message)
 {
   if (!dc_vtx_notify_message) return;
-  GstWebRTCDataChannelState state;
-  g_object_get(dc_vtx_notify_message, "ready-state", &state, NULL);
-  if (state != GST_WEBRTC_DATA_CHANNEL_STATE_OPEN) return;
-  g_signal_emit_by_name(dc_vtx_notify_message, "send-string", message);
+  NotifyData *d = g_new(NotifyData, 1);
+  d->dc = g_object_ref(dc_vtx_notify_message);
+  d->message = g_strdup(message);
+  g_idle_add(notify_send_idle, d);
 }
 
 // Handles a DataChannel open event by registering the appropriate periodic telemetry sender for the channel label.
