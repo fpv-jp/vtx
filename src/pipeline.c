@@ -3,10 +3,46 @@
 #include "headers/common.h"
 #include "headers/data_channel.h"
 #include "headers/rtp.h"
+#include "headers/utils.h"
 #include "headers/webrtc.h"
 
 GstElement *pipeline = NULL;
 GstElement *webrtc = NULL;
+
+static gboolean on_bus_message(GstBus *bus, GstMessage *msg, gpointer user_data)
+{
+  switch (GST_MESSAGE_TYPE(msg))
+  {
+    case GST_MESSAGE_ERROR:
+    {
+      GError *err = NULL;
+      gchar *debug = NULL;
+      gst_message_parse_error(msg, &err, &debug);
+      gst_printerrln("Pipeline error: %s (%s)", err->message, debug ? debug : "none");
+      g_error_free(err);
+      g_free(debug);
+      vtx_cleanup_connection("Pipeline error");
+      break;
+    }
+    case GST_MESSAGE_WARNING:
+    {
+      GError *err = NULL;
+      gchar *debug = NULL;
+      gst_message_parse_warning(msg, &err, &debug);
+      gst_printerrln("Pipeline warning: %s (%s)", err->message, debug ? debug : "none");
+      g_error_free(err);
+      g_free(debug);
+      break;
+    }
+    case GST_MESSAGE_EOS:
+      gst_println("Pipeline EOS");
+      vtx_cleanup_connection("Pipeline EOS");
+      break;
+    default:
+      break;
+  }
+  return TRUE;
+}
 
 // Builds and starts the GStreamer pipeline, wires up webrtcbin callbacks, and sets the pipeline to PLAYING state.
 gboolean vtx_pipeline_start(const MediaParams *params, gchar **error_msg)
@@ -60,5 +96,10 @@ gboolean vtx_pipeline_start(const MediaParams *params, gchar **error_msg)
     if (error_msg) *error_msg = g_strdup("Failed to set pipeline state to PLAYING");
     return FALSE;
   }
+
+  GstBus *bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline));
+  gst_bus_add_watch(bus, on_bus_message, NULL);
+  gst_object_unref(bus);
+
   return TRUE;
 }

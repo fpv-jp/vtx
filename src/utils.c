@@ -240,6 +240,12 @@ gboolean vtx_cleanup_connection(const gchar *msg)
   // Cleanup GStreamer pipeline and webrtc
   if (pipeline)
   {
+    GstBus *bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline));
+    if (bus)
+    {
+      gst_bus_remove_watch(bus);
+      gst_object_unref(bus);
+    }
     gst_element_set_state(pipeline, GST_STATE_NULL);
     gst_object_unref(pipeline);
     pipeline = NULL;
