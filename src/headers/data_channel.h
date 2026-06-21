@@ -45,6 +45,11 @@ void vtx_dc_on_message_command(GObject *dc, gchar *str, gpointer user_data);
 
 #define CHANNEL_TYPE_WPA_SUPPLICANT "WPA_SUPPLICANT"
 
+#define CHANNEL_VTX_NOTIFY_MESSAGE "VTX_NOTIFY_MESSAGE"
+
+extern GObject *dc_vtx_notify_message;
+void vtx_dc_notify_message_send(const gchar *message);
+
 extern MSP *g_msp;
 
 extern GObject *dc_msp_raw_imu;

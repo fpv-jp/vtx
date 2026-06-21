@@ -1,4 +1,7 @@
+#include <stdio.h>
+
 #include "headers/common.h"
+#include "headers/data_channel.h"
 #include "headers/msp.h"
 #include "headers/signaling.h"
 #include "headers/utils.h"
@@ -7,11 +10,26 @@ GMainLoop *loop = NULL;
 
 AppState app_state = APP_STATE_UNKNOWN;
 
+static void vtx_print_handler(const gchar *msg)
+{
+  fputs(msg, stdout);
+  vtx_dc_notify_message_send(msg);
+}
+
+static void vtx_printerr_handler(const gchar *msg)
+{
+  fputs(msg, stderr);
+  vtx_dc_notify_message_send(msg);
+}
+
 // Initializes GStreamer, detects platform and GPU, starts the MSP port scan, connects to the signaling server, and runs the GLib main loop.
 int main(int argc, char *argv[])
 {
   gst_debug_set_default_threshold(GST_LEVEL_FIXME);
   gst_init(&argc, &argv);
+
+  g_set_print_handler(vtx_print_handler);
+  g_set_printerr_handler(vtx_printerr_handler);
 
   // Detect platform at runtime
   vtx_detect_platform();

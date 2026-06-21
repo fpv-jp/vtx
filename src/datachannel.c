@@ -1,7 +1,18 @@
 #include "glib.h"
 #include "glibconfig.h"
+#include <gst/webrtc/webrtc.h>
 #include "headers/data_channel.h"
 #include "headers/wpa.h"
+
+// Sends a text message on the VTX_NOTIFY_MESSAGE DataChannel if it is open.
+void vtx_dc_notify_message_send(const gchar *message)
+{
+  if (!dc_vtx_notify_message) return;
+  GstWebRTCDataChannelState state;
+  g_object_get(dc_vtx_notify_message, "ready-state", &state, NULL);
+  if (state != GST_WEBRTC_DATA_CHANNEL_STATE_OPEN) return;
+  g_signal_emit_by_name(dc_vtx_notify_message, "send-string", message);
+}
 
 // Handles a DataChannel open event by registering the appropriate periodic telemetry sender for the channel label.
 static void vtx_dc_on_open(GObject *dc, gpointer user_data)
@@ -64,6 +75,13 @@ static void vtx_dc_on_open(GObject *dc, gpointer user_data)
   else if (g_strcmp0(label, CHANNEL_TYPE_WPA_SUPPLICANT) == 0)
   {
     timeout_id_wpa_supplicant = g_timeout_add_seconds(1, vtx_wpa_send_status, dc);
+  }
+
+  // VTX_NOTIFY_MESSAGE channel — store reference for on-demand sends
+  else if (g_strcmp0(label, CHANNEL_VTX_NOTIFY_MESSAGE) == 0)
+  {
+    dc_vtx_notify_message = dc;
+    g_object_ref(dc_vtx_notify_message);
   }
 }
 
@@ -157,7 +175,7 @@ static void vtx_dc_create_wpa_channels(GstElement *webrtc)
   }
 }
 
-// Creates all DataChannels (CMD, MSP, and optionally WPA_SUPPLICANT) on the given webrtcbin element.
+// Creates all DataChannels (CMD, MSP, WPA_SUPPLICANT, VTX_NOTIFY_MESSAGE) on the given webrtcbin element.
 void vtx_dc_create_offer(GstElement *webrtc)
 {
   // https://www.w3.org/TR/webrtc/#dom-rtcdatachannelinit
@@ -172,6 +190,12 @@ void vtx_dc_create_offer(GstElement *webrtc)
   {
     // WPA_SUPPLICANT channel (always created when available)
     vtx_dc_create_wpa_channels(webrtc);
+  }
+
+  // VTX_NOTIFY_MESSAGE channel — ordered, reliable for log text delivery
+  {
+    ChannelConfig config = {CHANNEL_VTX_NOTIFY_MESSAGE, &dc_vtx_notify_message, TRUE, FALSE, 5};
+    vtx_dc_create_data_channel(webrtc, &config);
   }
 }
 
