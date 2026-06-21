@@ -22,6 +22,25 @@ static void vtx_printerr_handler(const gchar *msg)
   vtx_dc_notify_message_send(msg);
 }
 
+// GStreamer 内部デバッグログ (GST_DEBUG) をフックして vrx に転送する。
+// WARNING 以上のみを対象とし、デフォルトのターミナル出力は維持する。
+static void vtx_gst_log_handler(GstDebugCategory *category, GstDebugLevel level,
+                                 const gchar *file, const gchar *function, gint line,
+                                 GObject *object, GstDebugMessage *message, gpointer user_data)
+{
+  gst_debug_log_default(category, level, file, function, line, object, message, user_data);
+
+  if (level > GST_LEVEL_WARNING) return;
+
+  const gchar *text = gst_debug_message_get(message);
+  gchar *formatted = g_strdup_printf("[%s:%s] %s\n",
+      gst_debug_level_get_name(level),
+      gst_debug_category_get_name(category),
+      text);
+  vtx_dc_notify_message_send(formatted);
+  g_free(formatted);
+}
+
 // Initializes GStreamer, detects platform and GPU, starts the MSP port scan, connects to the signaling server, and runs the GLib main loop.
 int main(int argc, char *argv[])
 {
@@ -30,6 +49,10 @@ int main(int argc, char *argv[])
 
   g_set_print_handler(vtx_print_handler);
   g_set_printerr_handler(vtx_printerr_handler);
+
+  // デフォルトログ関数を vtx_gst_log_handler に置き換える（二重出力を防ぐため削除してから追加）
+  gst_debug_remove_log_function(gst_debug_log_default);
+  gst_debug_add_log_function(vtx_gst_log_handler, NULL, NULL);
 
   // Detect platform at runtime
   vtx_detect_platform();
