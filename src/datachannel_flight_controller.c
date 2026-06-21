@@ -6,6 +6,8 @@
 // Global MSP instance and data channel references
 MSP *g_msp = NULL;
 
+GObject *dc_vtx_notify_message = NULL;
+
 GObject *dc_msp_raw_imu = NULL;
 GObject *dc_msp_raw_gps = NULL;
 GObject *dc_msp_comp_gps = NULL;
@@ -88,6 +90,12 @@ void vtx_dc_cleanup(void)
   }
 
   // Close and unref data channels
+  if (dc_vtx_notify_message)
+  {
+    g_signal_emit_by_name(dc_vtx_notify_message, "close");
+    g_object_unref(dc_vtx_notify_message);
+    dc_vtx_notify_message = NULL;
+  }
   if (dc_cmd)
   {
     g_signal_emit_by_name(dc_cmd, "close");
