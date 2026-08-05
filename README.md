@@ -93,6 +93,12 @@ sudo apt-get install -y gstreamer1.0-nice
 
 Without it, `vtx` builds and links fine, but fails its startup plugin check with `Required GStreamer plugin 'nice' not found`.
 
+**Radxa ROCK 5B / ROCK 5T:** the Rockchip build of `gstreamer-video-1.0`/`gstreamer-sdp-1.0` depends on `librga` for the RGA 2D accelerator. The Radxa apt repo (`radxa-repo`) ships the runtime library `librga2` but not the `-dev` package, so `make` fails with `Package 'librga', required by 'gstreamer-video-1.0', not found` even though GStreamer itself is installed. Install it explicitly:
+
+```bash
+sudo apt-get install -y librga-dev
+```
+
 ### 1. Start the signaling server
 
 Run the signaling server from [app](https://github.com/fpv-jp/app) locally via Docker:
