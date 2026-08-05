@@ -60,6 +60,7 @@ vtx                          signaling server                    vrx
 - Raspberry Pi 4B
 - Raspberry Pi Compute Module 4
 - Raspberry Pi 5B (software encoding only)
+- Raspberry Pi Compute Module 5 (software encoding only)
 - Jetson Nano 2GB Developer Kit
 - Jetson Orin Nano Super (software encoding only)
 - Radxa ROCK 5B
