@@ -71,6 +71,20 @@ The following instructions assume remote development over SSH (e.g., using VS Co
 
 **Prerequisite:** Complete the GStreamer installation by following the instructions at [fpv-jp/bsp - GStreamer](https://github.com/fpv-jp/bsp/tree/main/Gstreamer).
 
+**Build dependencies:** On Debian/Ubuntu, install the following packages before running `make`:
+
+```bash
+sudo apt-get install -y \
+  libgstreamer1.0-dev \
+  libgstreamer-plugins-base1.0-dev \
+  libgstreamer-plugins-bad1.0-dev \
+  libsoup-3.0-dev \
+  libjson-glib-dev \
+  libnice-dev
+```
+
+> `libgstreamer-plugins-bad1.0-dev` provides `gstreamer-webrtc-1.0` and `gstreamer-webrtc-nice-1.0`, and `libnice-dev` provides `nice`, both required by the Makefile's `pkg-config` checks. If your distribution ships only `libsoup-2.4` (e.g. older Ubuntu/Debian releases), install `libsoup2.4-dev` instead — the Makefile auto-detects whichever is available.
+
 ### 1. Start the signaling server
 
 Start the signaling server from [app](https://github.com/fpv-jp/app) for SDP/ICE exchange.
