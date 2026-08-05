@@ -103,7 +103,11 @@ void vtx_detect_platform(void)
       gst_println("  Device model: %s", model);
 
       // Raspberry Pi detection
-      if (strstr(model, "Raspberry Pi 5"))
+      if (strstr(model, "Raspberry Pi Compute Module 5"))
+      {
+        g_platform = RASPBERRY_PI_5CM;
+      }
+      else if (strstr(model, "Raspberry Pi 5"))
       {
         g_platform = RASPBERRY_PI_5;
       }
@@ -116,9 +120,13 @@ void vtx_detect_platform(void)
         g_platform = RASPBERRY_PI_4B;
       }
       // Radxa ROCK 5 series detection
+      else if (strstr(model, "ROCK 5T"))
+      {
+        g_platform = RADXA_ROCK_5T;
+      }
       else if (strstr(model, "ROCK 5"))
       {
-        g_platform = RADXA_ROCK_5B;  // Use 5B for all ROCK 5 series
+        g_platform = RADXA_ROCK_5B;
       }
       // Jetson detection (placeholder - adjust based on actual model strings)
       else if (strstr(model, "Jetson Orin"))
@@ -173,6 +181,8 @@ gchar *vtx_platform_to_string(PlatformType platform)
       return "RASPBERRY_PI_4CM";
     case RASPBERRY_PI_5:
       return "RASPBERRY_PI_5";
+    case RASPBERRY_PI_5CM:
+      return "RASPBERRY_PI_5CM";
     case JETSON_NANO_2GB:
       return "JETSON_NANO_2GB";
     case JETSON_ORIN_NANO_SUPER:
@@ -383,6 +393,7 @@ gboolean vtx_check_gst_plugins(void)
       break;
 
     case RASPBERRY_PI_5:
+    case RASPBERRY_PI_5CM:
       g_ptr_array_add(needed, g_strdup("libcamera"));
       g_ptr_array_add(needed, g_strdup("openh264"));
       g_ptr_array_add(needed, g_strdup("alsa"));

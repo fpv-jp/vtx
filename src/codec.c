@@ -80,6 +80,7 @@ static void vtx_platform_serviceable_codecs(void)
       break;
 
     case RASPBERRY_PI_5:
+    case RASPBERRY_PI_5CM:
       // VideoCore VII does not support HW encoding, decoding only.
       // Use SW encoding (openh264).
       s_platform_serviceable_codecs[0] = "openh264enc";

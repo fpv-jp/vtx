@@ -64,7 +64,7 @@ vtx                          signaling server                    vrx
 `vtx_detect_gpu_vendor()` は LINUX_X86 のみ GPU ベンダーを検出して `g_gpu_vendor` をセット。
 `pipeline_factory.c` の `vtx_pipeline_build()` でプラットフォーム別エンコーダパイプラインを選択する。
 
-対応プラットフォーム: `APPLE_MAC`, `LINUX_X86`, `RASPBERRY_PI_4B`, `RASPBERRY_PI_4CM`, `RASPBERRY_PI_5`, `JETSON_NANO_2GB`, `JETSON_ORIN_NANO_SUPER`, `RADXA_ROCK_5B`, `RADXA_ROCK_5T`
+対応プラットフォーム: `APPLE_MAC`, `LINUX_X86`, `RASPBERRY_PI_4B`, `RASPBERRY_PI_4CM`, `RASPBERRY_PI_5`, `RASPBERRY_PI_5CM`, `JETSON_NANO_2GB`, `JETSON_ORIN_NANO_SUPER`, `RADXA_ROCK_5B`, `RADXA_ROCK_5T`
 
 ## 主要グローバル変数 (common.h で extern 宣言)
 
