@@ -85,23 +85,48 @@ sudo apt-get install -y \
 
 > `libgstreamer-plugins-bad1.0-dev` provides `gstreamer-webrtc-1.0` and `gstreamer-webrtc-nice-1.0`, and `libnice-dev` provides `nice`, both required by the Makefile's `pkg-config` checks. If your distribution ships only `libsoup-2.4` (e.g. older Ubuntu/Debian releases), install `libsoup2.4-dev` instead — the Makefile auto-detects whichever is available.
 
+**Runtime dependency:** vtx also needs the GStreamer **plugin** (not just the library) that implements ICE, which is a separate package from `libnice-dev`/`libnice10`:
+
+```bash
+sudo apt-get install -y gstreamer1.0-nice
+```
+
+Without it, `vtx` builds and links fine, but fails its startup plugin check with `Required GStreamer plugin 'nice' not found`.
+
 ### 1. Start the signaling server
 
-Start the signaling server from [app](https://github.com/fpv-jp/app) for SDP/ICE exchange.
+Run the signaling server from [app](https://github.com/fpv-jp/app) locally via Docker:
 
-### 2. Build
+```bash
+docker run -itd \
+  --user root \
+  --name fpvjp-app \
+  -p 443:443 \
+  --restart unless-stopped \
+  fpvjp/app:latest
+```
+
+### 2. Point `fpv` at the local signaling server
+
+The default `SIGNALING_ENDPOINT` is `wss://fpv/signaling`, so add a loopback entry for `fpv` to `/etc/hosts`:
+
+```sh
+echo "127.0.0.1 localhost fpv" | sudo tee -a /etc/hosts
+```
+
+### 3. Build
 
 ```
 make
 ```
 
-### 3. Download the CA certificate
+### 4. Download the CA certificate
 
 ```sh
 curl -L -o server-ca-cert.pem https://raw.githubusercontent.com/fpv-jp/app/refs/heads/main/certificate/server-ca-cert.pem
 ```
 
-### 4. Run
+### 5. Run
 
 ```
 ./vtx
