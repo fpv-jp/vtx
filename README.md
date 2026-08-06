@@ -66,9 +66,9 @@ vtx                          signaling server                    vrx
 - Radxa ROCK 5B
 - Radxa ROCK 5T
 
-## Development Setup
+## Build
 
-The following instructions assume remote development over SSH (e.g., using VS Code Remote SSH) connected to a development machine.
+The following instructions assume remote development over SSH (e.g., using VS Code Remote SSH) connected to the target machine.
 
 **Prerequisite:** Complete the GStreamer installation by following the instructions at [fpv-jp/bsp - GStreamer](https://github.com/fpv-jp/bsp/tree/main/Gstreamer).
 
@@ -92,36 +92,7 @@ sudo apt-get install -y \
 sudo apt-get install -y librga-dev
 ```
 
-### 1. Start the signaling server
-
-Run the signaling server from [app](https://github.com/fpv-jp/app) locally via Docker:
-
-```bash
-docker run -itd \
-  --user root \
-  --name fpvjp-app \
-  -p 443:443 \
-  --restart unless-stopped \
-  fpvjp/app:latest
-```
-
-### 2. Point `fpv` at the local signaling server
-
-The default `SIGNALING_ENDPOINT` is `wss://fpv/signaling`, so add a loopback entry for `fpv` to `/etc/hosts`:
-
-```sh
-echo "127.0.0.1 localhost fpv" | sudo tee -a /etc/hosts
-```
-
-### 3. Build
-
-```
-make
-```
-
-### 4. Install runtime GStreamer plugins
-
-Building successfully does not mean `vtx` can run. GStreamer resolves plugins at runtime through its plugin registry, which is separate from the `-dev` packages installed above needed only to build. On startup `vtx` checks that every plugin it needs is present and exits with `Required GStreamer plugin 'X' not found` for anything missing.
+**Runtime GStreamer plugins:** building successfully does not mean `vtx` can run. GStreamer resolves plugins at runtime through its plugin registry, which is separate from the `-dev` packages above needed only to build. On startup `vtx` checks that every plugin it needs is present and exits with `Required GStreamer plugin 'X' not found` for anything missing.
 
 Pick the command for your platform and run it as-is:
 
@@ -175,28 +146,17 @@ sudo apt-get install -y \
 
 </details>
 
-### 5. Download the CA certificate
+Then build:
 
-```sh
-curl -L -o server-ca-cert.pem https://raw.githubusercontent.com/fpv-jp/app/refs/heads/main/certificate/server-ca-cert.pem
+```bash
+make
 ```
 
-### 6. Run
+## Run
 
-```
-./vtx
-```
+### 1. Start the signaling server
 
-> **Note:** To use the public fpv.jp signaling server for testing:
-> ```
-> SIGNALING_ENDPOINT=wss://fpv.jp/signaling SERVER_CERTIFICATE_AUTHORITY= ./vtx
-> ```
-
-## Production Deployment
-
-**Prerequisite:** For Wi-Fi configuration, see [fpv-jp/bsp - Wifi](https://github.com/fpv-jp/bsp/tree/main/Wifi).
-
-### 1. Start the Signaling Server
+Run the signaling server from [app](https://github.com/fpv-jp/app) locally via Docker:
 
 ```bash
 docker run -itd \
@@ -207,30 +167,68 @@ docker run -itd \
   fpvjp/app:latest
 ```
 
-### 2. Extract CA Certificate
+### 2. Point `fpv` at the local signaling server
 
-```bash
-docker cp fpvjp-app:/app/certificate/server-ca-cert.pem .
+The default `SIGNALING_ENDPOINT` is `wss://fpv/signaling`, so add a loopback entry for `fpv` to `/etc/hosts`:
+
+```sh
+echo "127.0.0.1 localhost fpv" | sudo tee -a /etc/hosts
 ```
 
-### 3. Install as System Service
+### 3. Download the CA certificate
 
-```bash
-cd service
-sudo bash setup.sh
+```sh
+curl -L -o server-ca-cert.pem https://raw.githubusercontent.com/fpv-jp/app/refs/heads/main/certificate/server-ca-cert.pem
 ```
 
-## Development
+> Alternatively, since the signaling server above is running locally in Docker, you can extract the certificate directly from the container instead:
+> ```sh
+> docker cp fpvjp-app:/app/certificate/server-ca-cert.pem .
+> ```
 
-To run vtx manually for debugging:
+### 4. Run
 
-```bash
-# Stop and disable the system service
-sudo systemctl stop vtx.service
-sudo systemctl disable vtx.service
+```
+./vtx
 ```
 
-## Service Management
+> **Note:** To use the public fpv.jp signaling server for testing:
+> ```
+> SIGNALING_ENDPOINT=wss://fpv.jp/signaling SERVER_CERTIFICATE_AUTHORITY= ./vtx
+> ```
+
+## Service Registration
+
+To run `vtx` permanently as a systemd service instead of launching it manually, install it under `/opt/vtx` and register the unit files in `service/`.
+
+**Prerequisite:** For Wi-Fi configuration, see [fpv-jp/bsp - Wifi](https://github.com/fpv-jp/bsp/tree/main/Wifi). Also complete steps 1–3 of [Run](#run) above (signaling server running, `fpv` hostname resolvable, `server-ca-cert.pem` downloaded) and have a built `vtx` binary from [Build](#build).
+
+### 1. Install the binary and certificate
+
+```bash
+sudo mkdir -p /opt/vtx
+sudo cp vtx server-ca-cert.pem /opt/vtx/
+sudo chmod +x /opt/vtx/vtx
+```
+
+### 2. Install the environment file
+
+```bash
+sudo cp service/vtx.env /etc/vtx.env
+```
+
+`/etc/vtx.env` sets `SIGNALING_ENDPOINT` and points `SERVER_CERTIFICATE_AUTHORITY` at `/opt/vtx/server-ca-cert.pem` — edit it if your signaling endpoint differs from the default.
+
+### 3. Register and start the systemd service
+
+```bash
+sudo cp service/vtx.service /etc/systemd/system/vtx.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now vtx.service
+sudo systemctl status vtx.service
+```
+
+### Service Management
 
 ```bash
 sudo systemctl status vtx.service    # Check status
@@ -238,4 +236,11 @@ sudo systemctl start vtx.service     # Start service
 sudo systemctl stop vtx.service      # Stop service
 sudo systemctl restart vtx.service   # Restart service
 sudo journalctl -u vtx.service -f    # View logs
+```
+
+To run `vtx` manually for debugging (see [Run](#run)), first stop and disable the service so they don't conflict:
+
+```bash
+sudo systemctl stop vtx.service
+sudo systemctl disable vtx.service
 ```
