@@ -72,6 +72,41 @@ The following instructions assume remote development over SSH (e.g., using VS Co
 
 **Prerequisite:** Complete the GStreamer installation by following the instructions at [fpv-jp/bsp - GStreamer](https://github.com/fpv-jp/bsp/tree/main/Gstreamer).
 
+<details>
+<summary>Jetson Nano 2GB (Ubuntu 18.04 "bionic") gotchas when building GStreamer from source</summary>
+
+The Jetson Nano 2GB ships Ubuntu 18.04, whose apt-provided GStreamer is a stock 1.14.5 — too old for the `GstWebRTCICE` API used by `src/ice.c` (`gst/webrtc/ice.h` doesn't exist yet in 1.14.5). The BSP repo's `install-gstreamer.sh` builds GStreamer 1.28.0 from source instead, but a few things need adjusting for this specific board/OS combo:
+
+- **Skip `libsoup-3.0-dev` in the BSP repo's dependency install step.** It doesn't exist in Ubuntu 18.04 apt, and it isn't actually needed — `meson-base.sh` sets `-Dauto_features=disabled` and never enables the `soup` plugin, so the GStreamer build itself has no libsoup dependency.
+- **Use a `python3.8` venv for meson/ninja**, not the system `python3` (3.6.9) — recent `meson` won't run on it:
+  ```bash
+  sudo apt-get install -y python3.8 python3.8-venv python3.8-dev
+  cd ~/gstreamer
+  python3.8 -m venv meson-venv
+  . meson-venv/bin/activate
+  pip install --upgrade pip && pip install meson ninja
+  ```
+- **Install `gcc-8`/`g++-8` and build with them.** The stock `gcc-7.5` fails on `subprojects/gst-plugins-good/sys/v4l2/gstv4l2object.c` with `initializer element is not constant` — that file relies on a static-aggregate-initializer extension only supported from GCC 8 onward.
+  ```bash
+  sudo apt-get install -y gcc-8 g++-8
+  CC=gcc-8 CXX=g++-8 ./meson-jetson-nano-2gb.sh
+  ninja -C build -j3   # -j2/-j3, not -j$(nproc) — the 2GB board OOMs/thrashes otherwise
+  sudo meson-venv/bin/ninja -C build install
+  sudo ldconfig
+  ```
+- **The `v4l2codecs` feature needs `gudev`.** If meson setup fails with `Dependency "libudev" not found` while fetching a `libgudev` fallback subproject, install the dev packages directly instead of letting meson build gudev from source:
+  ```bash
+  sudo apt-get install -y libgudev-1.0-dev libudev-dev
+  ```
+- **Clean up stale apt-owned plugins after install.** `meson-base.sh` uses `--prefix=/usr`, so `ninja install` overwrites the apt-installed 1.14.5 files in place — but plugins that were merged/renamed upstream (`videoconvert` + `videoscale` → `videoconvertscale`) leave their old file behind since nothing overwrites that filename. The old and new plugins then both try to register the same GType, which aborts plugin registration for it with `cannot register existing type 'GstVideoScale'` (spotted via `gst-inspect-1.0 2>&1 >/dev/null | grep -i critical` after `rm -rf ~/.cache/gstreamer-1.0/`). Fix by deleting the stale apt-owned files once the new build is confirmed working:
+  ```bash
+  sudo rm -f /usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgstvideoscale.so
+  sudo rm -f /usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgstvideoconvert.so
+  rm -rf ~/.cache/gstreamer-1.0/
+  ```
+
+</details>
+
 **Build dependencies:** On Debian/Ubuntu, install the following packages before running `make`:
 
 ```bash
@@ -84,7 +119,19 @@ sudo apt-get install -y \
   libnice-dev
 ```
 
-> `libgstreamer-plugins-bad1.0-dev` provides `gstreamer-webrtc-1.0` and `gstreamer-webrtc-nice-1.0`, and `libnice-dev` provides `nice`, both required by the Makefile's `pkg-config` checks. If your distribution ships only `libsoup-2.4` (e.g. older Ubuntu/Debian releases), install `libsoup2.4-dev` instead — the Makefile auto-detects whichever is available.
+> On older Ubuntu/Debian releases (e.g. Ubuntu 18.04 "bionic", as shipped on the Jetson Nano 2GB), `libsoup-3.0-dev` does not exist in apt — install `libsoup2.4-dev` instead:
+> ```bash
+> sudo apt-get install -y \
+>   libgstreamer1.0-dev \
+>   libgstreamer-plugins-base1.0-dev \
+>   libgstreamer-plugins-bad1.0-dev \
+>   libsoup2.4-dev \
+>   libjson-glib-dev \
+>   libnice-dev
+> ```
+> The Makefile auto-detects whichever of `libsoup-3.0` / `libsoup-2.4` is available via `pkg-config`, so either package works. Note the package name has no hyphen before the version (`libsoup2.4-dev`, not `libsoup-2.4-dev`) — `libsoup2.4-1` is only the runtime shared library and lacks the headers needed to build.
+>
+> `libgstreamer-plugins-bad1.0-dev` provides `gstreamer-webrtc-1.0` and `gstreamer-webrtc-nice-1.0`, and `libnice-dev` provides `nice`, both required by the Makefile's `pkg-config` checks.
 
 **Radxa ROCK 5B / ROCK 5T:** the Rockchip build of `gstreamer-video-1.0`/`gstreamer-sdp-1.0` depends on `librga` for the RGA 2D accelerator. The Radxa apt repo (`radxa-repo`) ships the runtime library `librga2` but not the `-dev` package, so `make` fails with `Package 'librga', required by 'gstreamer-video-1.0', not found` even though GStreamer itself is installed. Install it explicitly:
 
