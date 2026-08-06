@@ -86,14 +86,6 @@ sudo apt-get install -y \
 
 > `libgstreamer-plugins-bad1.0-dev` provides `gstreamer-webrtc-1.0` and `gstreamer-webrtc-nice-1.0`, and `libnice-dev` provides `nice`, both required by the Makefile's `pkg-config` checks. If your distribution ships only `libsoup-2.4` (e.g. older Ubuntu/Debian releases), install `libsoup2.4-dev` instead — the Makefile auto-detects whichever is available.
 
-**Runtime dependency:** vtx also needs the GStreamer **plugin** (not just the library) that implements ICE, which is a separate package from `libnice-dev`/`libnice10`:
-
-```bash
-sudo apt-get install -y gstreamer1.0-nice
-```
-
-Without it, `vtx` builds and links fine, but fails its startup plugin check with `Required GStreamer plugin 'nice' not found`.
-
 **Radxa ROCK 5B / ROCK 5T:** the Rockchip build of `gstreamer-video-1.0`/`gstreamer-sdp-1.0` depends on `librga` for the RGA 2D accelerator. The Radxa apt repo (`radxa-repo`) ships the runtime library `librga2` but not the `-dev` package, so `make` fails with `Package 'librga', required by 'gstreamer-video-1.0', not found` even though GStreamer itself is installed. Install it explicitly:
 
 ```bash
@@ -127,13 +119,69 @@ echo "127.0.0.1 localhost fpv" | sudo tee -a /etc/hosts
 make
 ```
 
-### 4. Download the CA certificate
+### 4. Install runtime GStreamer plugins
+
+Building successfully does not mean `vtx` can run. GStreamer resolves plugins at runtime through its plugin registry, which is separate from the `-dev` packages installed above needed only to build. On startup `vtx` checks that every plugin it needs is present and exits with `Required GStreamer plugin 'X' not found` for anything missing.
+
+Pick the command for your platform and run it as-is:
+
+**Raspberry Pi (4B / CM4 / 5 / CM5):**
+
+```bash
+sudo apt-get install -y \
+  gstreamer1.0-plugins-base-apps \
+  gstreamer1.0-plugins-good \
+  gstreamer1.0-plugins-bad \
+  gstreamer1.0-alsa \
+  gstreamer1.0-nice \
+  gstreamer1.0-libcamera
+```
+
+**Debian/Ubuntu x86 (Intel/AMD/Nvidia GPU):**
+
+```bash
+sudo apt-get install -y \
+  gstreamer1.0-plugins-base-apps \
+  gstreamer1.0-plugins-good \
+  gstreamer1.0-plugins-bad \
+  gstreamer1.0-alsa \
+  gstreamer1.0-nice
+```
+
+> The HW encoder plugins (`va`, `amfcodec`, `nvcodec`) ship inside `gstreamer1.0-plugins-bad` above — just make sure the vendor driver is installed (e.g. `intel-media-va-driver` for Intel).
+
+**Jetson / Radxa ROCK:**
+
+```bash
+sudo apt-get install -y \
+  gstreamer1.0-plugins-base-apps \
+  gstreamer1.0-plugins-good \
+  gstreamer1.0-plugins-bad \
+  gstreamer1.0-alsa \
+  gstreamer1.0-nice
+```
+
+> The camera and HW-encoder plugins (`nvarguscamerasrc`, `rockchipmpp`, etc.) come from the vendor BSP rather than standard apt packages — see the platform's BSP setup docs.
+
+<details>
+<summary>What each package provides</summary>
+
+- `gstreamer1.0-plugins-base-apps` — the `gst-device-monitor-1.0` tool used for device enumeration, plus `opus` (pulled in as a dependency of the packages below)
+- `gstreamer1.0-plugins-bad` — `webrtc`, `dtls`, `srtp`, `videoparsersbad`, `opusparse`
+- `gstreamer1.0-plugins-good` — `rtp`, `rtpmanager`, `video4linux2`
+- `gstreamer1.0-alsa` — `alsa` (a separate package on Debian/Raspberry Pi OS)
+- `gstreamer1.0-nice` — `nice` (ICE)
+- `gstreamer1.0-libcamera` — `libcamera` (Raspberry Pi camera source)
+
+</details>
+
+### 5. Download the CA certificate
 
 ```sh
 curl -L -o server-ca-cert.pem https://raw.githubusercontent.com/fpv-jp/app/refs/heads/main/certificate/server-ca-cert.pem
 ```
 
-### 5. Run
+### 6. Run
 
 ```
 ./vtx
