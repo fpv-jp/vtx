@@ -73,37 +73,89 @@ The following instructions assume remote development over SSH (e.g., using VS Co
 **Prerequisite:** Complete the GStreamer installation by following the instructions at [fpv-jp/bsp - GStreamer](https://github.com/fpv-jp/bsp/tree/main/Gstreamer).
 
 <details>
-<summary>Jetson Nano 2GB (Ubuntu 18.04 "bionic") gotchas when building GStreamer from source</summary>
+<summary>Jetson Nano 2GB (Ubuntu 18.04 "bionic"): full from-source GStreamer build</summary>
 
-The Jetson Nano 2GB ships Ubuntu 18.04, whose apt-provided GStreamer is a stock 1.14.5 — too old for the `GstWebRTCICE` API used by `src/ice.c` (`gst/webrtc/ice.h` doesn't exist yet in 1.14.5). The BSP repo's `install-gstreamer.sh` builds GStreamer 1.28.0 from source instead, but a few things need adjusting for this specific board/OS combo:
+The Jetson Nano 2GB ships Ubuntu 18.04, whose apt-provided GStreamer is a stock 1.14.5 — too old for the `GstWebRTCICE` API used by `src/ice.c` (`gst/webrtc/ice.h` doesn't exist yet in 1.14.5). This board needs GStreamer built from source per the BSP repo, with a few adjustments for this specific board/OS combo. Full procedure:
 
-- **Skip `libsoup-3.0-dev` in the BSP repo's dependency install step.** It doesn't exist in Ubuntu 18.04 apt, and it isn't actually needed — `meson-base.sh` sets `-Dauto_features=disabled` and never enables the `soup` plugin, so the GStreamer build itself has no libsoup dependency.
-- **Use a `python3.8` venv for meson/ninja**, not the system `python3` (3.6.9) — recent `meson` won't run on it:
-  ```bash
-  sudo apt-get install -y python3.8 python3.8-venv python3.8-dev
-  cd ~/gstreamer
-  python3.8 -m venv meson-venv
-  . meson-venv/bin/activate
-  pip install --upgrade pip && pip install meson ninja
-  ```
-- **Install `gcc-8`/`g++-8` and build with them.** The stock `gcc-7.5` fails on `subprojects/gst-plugins-good/sys/v4l2/gstv4l2object.c` with `initializer element is not constant` — that file relies on a static-aggregate-initializer extension only supported from GCC 8 onward.
-  ```bash
-  sudo apt-get install -y gcc-8 g++-8
-  CC=gcc-8 CXX=g++-8 ./meson-jetson-nano-2gb.sh
-  ninja -C build -j3   # -j2/-j3, not -j$(nproc) — the 2GB board OOMs/thrashes otherwise
-  sudo meson-venv/bin/ninja -C build install
-  sudo ldconfig
-  ```
-- **The `v4l2codecs` feature needs `gudev`.** If meson setup fails with `Dependency "libudev" not found` while fetching a `libgudev` fallback subproject, install the dev packages directly instead of letting meson build gudev from source:
-  ```bash
-  sudo apt-get install -y libgudev-1.0-dev libudev-dev
-  ```
-- **Clean up stale apt-owned plugins after install.** `meson-base.sh` uses `--prefix=/usr`, so `ninja install` overwrites the apt-installed 1.14.5 files in place — but plugins that were merged/renamed upstream (`videoconvert` + `videoscale` → `videoconvertscale`) leave their old file behind since nothing overwrites that filename. The old and new plugins then both try to register the same GType, which aborts plugin registration for it with `cannot register existing type 'GstVideoScale'` (spotted via `gst-inspect-1.0 2>&1 >/dev/null | grep -i critical` after `rm -rf ~/.cache/gstreamer-1.0/`). Fix by deleting the stale apt-owned files once the new build is confirmed working:
-  ```bash
-  sudo rm -f /usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgstvideoscale.so
-  sudo rm -f /usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgstvideoconvert.so
-  rm -rf ~/.cache/gstreamer-1.0/
-  ```
+**1. Install apt dependencies.** Skip `libsoup-3.0-dev` from the BSP repo's own dependency list — it doesn't exist in Ubuntu 18.04 apt, and it isn't actually needed (`meson-base.sh` sets `-Dauto_features=disabled` and never enables the `soup` plugin, so the GStreamer build itself has no libsoup dependency). Add `python3.8`/`gcc-8` (see steps 3 and 5) and `libgudev-1.0-dev`/`libudev-dev` (needed by the `v4l2codecs` feature; without it, meson setup fails trying to build a `libgudev` fallback subproject with `Dependency "libudev" not found`) up front:
+
+```bash
+sudo apt-get install -y \
+  libjson-glib-dev libnice-dev \
+  libgstreamer1.0-dev libgstreamer-plugins-bad1.0-dev \
+  gstreamer1.0-tools gstreamer1.0-plugins-base-apps \
+  gstreamer1.0-plugins-bad gstreamer1.0-nice gstreamer1.0-alsa \
+  flex bison libdrm-dev libva-dev \
+  libasound2-dev libopus-dev libssl-dev \
+  libsrtp2-dev libvpx-dev libx265-dev \
+  libgudev-1.0-dev libudev-dev \
+  python3.8 python3.8-venv python3.8-dev \
+  gcc-8 g++-8
+```
+
+**2. Clone GStreamer 1.28.0:**
+
+```bash
+cd ~
+git clone --branch 1.28.0 --depth 1 https://gitlab.freedesktop.org/gstreamer/gstreamer.git
+cd gstreamer
+```
+
+**3. Create a `python3.8` venv for meson/ninja.** The system `python3` (3.6.9) is too old for recent `meson`:
+
+```bash
+python3.8 -m venv meson-venv
+. meson-venv/bin/activate
+pip install --upgrade pip && pip install meson ninja
+```
+
+**4. Fetch the platform build scripts** from the BSP repo into the `gstreamer` source directory (`meson-jetson-nano-2gb.sh` sources `meson-base.sh` from the same directory it's run from):
+
+```bash
+curl -sLO https://raw.githubusercontent.com/fpv-jp/bsp/main/Gstreamer/meson-base.sh
+curl -sLO https://raw.githubusercontent.com/fpv-jp/bsp/main/Gstreamer/meson-jetson-nano-2gb.sh
+chmod +x meson-jetson-nano-2gb.sh
+```
+
+**5. Run meson setup with `gcc-8`/`g++-8`.** The stock `gcc-7.5` fails compiling `subprojects/gst-plugins-good/sys/v4l2/gstv4l2object.c` with `initializer element is not constant` — that file relies on a static-aggregate-initializer extension only supported from GCC 8 onward:
+
+```bash
+CC=gcc-8 CXX=g++-8 ./meson-jetson-nano-2gb.sh
+```
+
+**6. Build.** Use `-j2`/`-j3`, not `-j$(nproc)` — the 2GB board OOMs/thrashes with full parallelism:
+
+```bash
+ninja -C build -j3
+```
+
+**7. Install and refresh the plugin cache.** `meson-base.sh` uses `--prefix=/usr`, so this overwrites the apt-installed 1.14.5 files in place:
+
+```bash
+sudo meson-venv/bin/ninja -C build install
+sudo ldconfig
+```
+
+**8. Clean up stale apt-owned plugins.** Files for plugins that were merged/renamed upstream (`videoconvert` + `videoscale` → `videoconvertscale`) aren't overwritten by step 7 since the new build uses a different filename, so the old and new plugins both try to register the same GType — this aborts registration for it with `cannot register existing type 'GstVideoScale'`. Check for it and clean up:
+
+```bash
+rm -rf ~/.cache/gstreamer-1.0/
+gst-inspect-1.0 2>&1 >/dev/null | grep -i critical   # should print nothing
+```
+
+If it does print `cannot register existing type` errors, delete the stale file(s) apt still owns at that path and re-run the check above:
+
+```bash
+sudo rm -f /usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgstvideoscale.so
+sudo rm -f /usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgstvideoconvert.so
+```
+
+**9. Verify** the new build is active before moving on to building `vtx` itself:
+
+```bash
+gst-inspect-1.0 --version   # should report 1.28.0
+gst-inspect-1.0 webrtcbin
+```
 
 </details>
 
